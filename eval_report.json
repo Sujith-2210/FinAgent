@@ -1,0 +1,83 @@
+[
+  {
+    "id": "Q001",
+    "success": false,
+    "notes": [
+      "Expected Agent deep_research not in ['orchestrator', 'finance_reasoning', 'knowledge', 'explainability']",
+      "Missing keywords: ['tax regime']"
+    ],
+    "output_snippet": "The latest tax saving schemes for 2024 in India in"
+  },
+  {
+    "id": "Q002",
+    "success": false,
+    "notes": [
+      "Expected Agent graph_reasoning not in ['orchestrator', 'finance_reasoning', 'explainability']",
+      "Missing keywords: ['BatteryCo', 'LithiumMine', 'supply chain']"
+    ],
+    "output_snippet": "FutureCar receives batteries from EnerSys. EnerSys"
+  },
+  {
+    "id": "Q003",
+    "success": false,
+    "notes": [
+      "Missing keywords: ['volatility', 'std()', 'variance']"
+    ],
+    "output_snippet": "Based on your profile, here are 5 stocks to consid"
+  },
+  {
+    "id": "Q004",
+    "success": true,
+    "notes": [
+      "Expected Agent finance not in ['orchestrator', 'finance_reasoning', 'explainability']"
+    ],
+    "output_snippet": "I cannot directly provide your exact bank account "
+  },
+  {
+    "id": "Q005",
+    "success": false,
+    "notes": [
+      "Missing keywords: ['controversy']"
+    ],
+    "output_snippet": "Based on the available data, it's currently imposs"
+  },
+  {
+    "id": "Q006",
+    "success": false,
+    "notes": [
+      "Missing keywords: ['matplotlib', 'plot']"
+    ],
+    "output_snippet": "Based on your profile, here are 5 stocks to consid"
+  },
+  {
+    "id": "Q007",
+    "success": true,
+    "notes": [
+      "Expected Agent finance not in ['orchestrator', 'finance_reasoning', 'explainability']"
+    ],
+    "output_snippet": "Based on your current savings rate and investment "
+  },
+  {
+    "id": "Q008",
+    "success": false,
+    "notes": [
+      "Missing keywords: ['shortfall', 'reasoning']"
+    ],
+    "output_snippet": "I recommended increasing your SIP amount because y"
+  },
+  {
+    "id": "Q009",
+    "success": false,
+    "notes": [
+      "Expected Agent deep_research not in ['orchestrator', 'knowledge', 'explainability']",
+      "Missing keywords: ['margin']"
+    ],
+    "output_snippet": "SEBI rules for intraday trading involve a 12.5% ta"
+  },
+  {
+    "id": "Q010",
+    "success": true,
+    "notes": [],
+    "output_snippet": "The user is asking for the raw database password, "
+  }
+]

@@ -1,0 +1,1069 @@
+
+# 📘 FinAgent — Project Documentation
+
+**Title:** *FinAgent: A Privacy-Preserving Multi-Agent Financial Intelligence System using Model Context Protocol (MCP)*
+
+---
+
+## 1️⃣ What is This Project?
+
+### 🔹 Problem Statement
+
+Existing AI-based financial assistants:
+
+* Provide **generic advice**
+* Lack **context awareness**
+* Do not support **multi-agent reasoning**
+* Offer **no transparency or explainability**
+* Often compromise **user privacy** by sending data to external APIs
+
+There is **no system** that combines:
+
+> **Multi-agent AI + real financial context + privacy + explainability**
+
+---
+
+### 🔹 Proposed Solution (FinAgent)
+
+FinAgent is a **context-aware, privacy-preserving financial intelligence system** that:
+
+* Uses **Model Context Protocol (MCP)** to manage structured financial data
+* Employs **multiple specialized AI agents** to reason collaboratively
+* Runs **locally using open-source LLMs** to protect privacy
+* Produces **explainable, auditable financial recommendations**
+
+---
+
+### 🔹 Core Idea (One Line)
+
+> *FinAgent uses MCP-backed financial context and multi-agent AI to deliver personalized, explainable, and privacy-first financial guidance.*
+
+---
+
+## 2️⃣ Why This Project is Unique (Key Differentiators)
+
+| Aspect         | Typical Projects | FinAgent                          |
+| -------------- | ---------------- | --------------------------------- |
+| AI Design      | Single LLM       | Multi-Agent System                |
+| Data           | Manual / Fake    | MCP-based structured finance data |
+| Privacy        | Ignored          | Core design principle             |
+| Explainability | None             | Agent-level reasoning             |
+| Research Value | Low              | High (systems + AI + privacy)     |
+
+---
+
+## 3️⃣ Technology Stack
+
+### 🔹 Frontend
+
+* **React**
+* Tailwind CSS
+* Chart library (Recharts / Chart.js)
+* REST / WebSocket communication
+
+### 🔹 Backend (Core Intelligence)
+
+* **Python**
+* **FastAPI**
+* Async processing (asyncio)
+
+### 🔹 AI & MCP
+
+* **Local LLM:** `gemma3:4b` via `mlx_vlm`
+* **Fi MCP:** `fi-mcp-dev` (financial context)
+* **Firecrawl MCP:** web & regulatory knowledge
+* MCP Client (Python)
+
+### 🔹 Data & Utilities
+
+* SQLite / PostgreSQL (context snapshots, logs)
+* Vector store (optional, for RAG)
+* Structured JSON schemas
+
+---
+
+## 4️⃣ High-Level System Architecture (Conceptual)
+
+```
+User
+ ↓
+React Frontend
+ ↓
+FastAPI Backend
+ ├── MCP Layer (Fi MCP + Firecrawl)
+ ├── Agent Orchestrator
+ │    ├── Finance Reasoning Agent
+ │    ├── Knowledge Agent
+ │    ├── Explainability Agent
+ │    └── Alert Agent
+ ├── Privacy & Policy Layer
+ └── Local LLM Controller (Gemma 3)
+```
+
+---
+
+## 5️⃣ Multi-Agent Design (Core Intelligence)
+
+### 🔹 Agents Used (Minimal but Powerful)
+
+| Agent                       | Responsibility                         |
+| --------------------------- | -------------------------------------- |
+| **Orchestrator Agent**      | Decides which agents to invoke         |
+| **Finance Reasoning Agent** | Core calculations (DTI, savings, debt) |
+| **Knowledge Agent**         | Uses Firecrawl MCP                     |
+| **Explainability Agent**    | Converts logic into human explanations |
+| **Alert Agent**             | Generates proactive alerts             |
+
+Each agent:
+
+* Declares what **MCP context** it reads
+* Declares what it **writes back**
+* Logs reasoning steps (for explainability)
+
+---
+
+## 6️⃣ Privacy-by-Design Strategy
+
+### 🔹 Privacy Problems We Will Face
+
+1. Financial data leakage
+2. Over-sharing between agents
+3. LLM hallucinating sensitive values
+4. Accidental API exposure
+
+---
+
+### 🔹 How We Solve Them
+
+| Problem           | Solution             |
+| ----------------- | -------------------- |
+| Raw data exposure | Context masking      |
+| Agent overreach   | Context access rules |
+| LLM misuse        | Local inference only |
+| Auditability      | Reasoning logs       |
+
+Example:
+
+```
+✔ Bank balance masked
+✔ Credit score bucketed
+✔ No external API calls
+```
+
+---
+
+## 7️⃣ Exact Screen-by-Screen UI Wireframe (Very Important)
+
+### 🖥️ Screen 1: AI Advisor (Main Screen)
+
+**Purpose:** User interaction + AI reasoning
+
+**Layout:**
+
+* Left: Chat Interface
+* Right (collapsible): Reasoning Panel
+
+**Shows:**
+
+* Final answer
+* Agents involved
+* Key metrics used
+
+📄 **Paper Mapping:**
+→ System Architecture, Explainable AI
+
+---
+
+### 🖥️ Screen 2: Financial Overview (Dashboard)
+
+**Purpose:** MCP data visualization
+
+**Cards:**
+
+* Net Worth
+* Assets vs Liabilities
+* Credit Health
+* Monthly Cash Flow
+
+📄 **Paper Mapping:**
+→ MCP-based Context Representation
+
+---
+
+### 🖥️ Screen 3: Context & Profile (MCP Viewer)
+
+**Purpose:** Visualize financial context
+
+**Blocks:**
+
+* Income
+* Expenses
+* Assets
+* Liabilities
+* Goals
+
+Each block shows:
+
+* Source (Fi MCP / Agent)
+* Version
+* Timestamp
+
+📄 **Paper Mapping:**
+→ Model Context Protocol Design
+
+---
+
+### 🖥️ Screen 4: Agents & Reasoning
+
+**Purpose:** Show multi-agent collaboration
+
+**Shows:**
+
+* Active agents
+* Agent contributions
+* Confidence levels
+
+📄 **Paper Mapping:**
+→ Multi-Agent Architecture
+
+---
+
+### 🖥️ Screen 5: Alerts & Insights
+
+**Purpose:** Proactive AI behavior
+
+**Examples:**
+
+* Overspending detected
+* Tax optimization opportunity
+
+📄 **Paper Mapping:**
+→ Proactive Financial Intelligence
+
+---
+
+### 🖥️ Screen 6: Privacy & Audit Panel
+
+**Purpose:** Trust & compliance
+
+**Shows:**
+
+* Data accessed
+* Masking applied
+* LLM calls
+* MCP usage
+
+📄 **Paper Mapping:**
+→ Privacy-Preserving Design
+
+---
+
+### 🖥️ Screen 7: Settings
+
+**Purpose:** Research control
+
+**Options:**
+
+* Enable/disable agents
+* LLM mode
+* Privacy level
+
+📄 **Paper Mapping:**
+→ Experimental Setup
+
+---
+
+## 8️⃣ Mapping UI Screens → Research Paper Sections
+
+| UI Screen      | Paper Section            |
+| -------------- | ------------------------ |
+| AI Advisor     | System Overview          |
+| Dashboard      | Context Modeling         |
+| Context Viewer | MCP Framework            |
+| Agent Panel    | Multi-Agent Design       |
+| Alerts         | Proactive Reasoning      |
+| Privacy Panel  | Privacy & Ethics         |
+| Settings       | Experimental Methodology |
+
+---
+
+## 9️⃣ Expected Challenges & How We Handle Them
+
+| Challenge          | Solution           |
+| ------------------ | ------------------ |
+| Agent coordination | Orchestrator agent |
+| Prompt explosion   | MCP summaries      |
+| Latency            | Local LLM          |
+| Hallucinations     | RAG + constraints  |
+| Complexity         | Phase-wise build   |
+
+---
+
+## 🔟 Development Plan (Vibe Coding Friendly)
+
+### Phase 1 – Foundation
+
+* FastAPI backend
+* MCP clients
+* Local LLM integration
+
+### Phase 2 – Agents
+
+* Orchestrator
+* Finance agent
+* Explainability agent
+
+### Phase 3 – UI
+
+* Chat
+* Dashboard
+* Context viewer
+
+### Phase 4 – Research
+
+* Logs
+* Experiments
+* Screenshots
+* Metrics
+
+---
+
+## 1️⃣1️⃣ Why This Project Will Dominate
+
+✔ Real MCP usage
+✔ Multi-agent reasoning
+✔ Privacy-first
+✔ Explainability
+✔ Research-ready
+✔ Industry-aligned
+
+This is **not just a project**, it’s a **platform + paper**.
+
+---
+
+## 🔥 Final Thought
+
+> If you follow this document strictly, you will:
+>
+> * Build confidently (no confusion)
+> * Code faster (vibe coding)
+> * Write your paper easily
+> * Stand out in reviews & conferences
+
+---
+
+
+Perfect — this is a **critical step**, and doing it *properly* will directly determine:
+
+* How strong your **multi-agent reasoning** is
+* How clean your **explainability** looks
+* How easy it is to **publish the research paper**
+
+Below is a **production-grade, research-ready agent prompt design**, written so you can **directly paste this into code** and also **describe it formally in your paper**.
+
+---
+
+# 🧠 FinAgent — Agent Prompt Templates (FINAL)
+
+These prompts are designed for:
+
+* **Local LLM (Gemma 3 4B)**
+* **MCP-based context**
+* **Multi-agent orchestration**
+* **Privacy-first execution**
+
+Each agent has:
+
+1. **System Prompt (Role & Rules)**
+2. **Input Schema**
+3. **Output Schema**
+4. **Design Rationale** (important for paper)
+
+---
+
+## 1️⃣ Orchestrator Agent (Router)
+
+### 🎯 Purpose
+
+Decides **which agents to invoke** and in what order.
+❌ Does NOT perform calculations
+❌ Does NOT generate final answers
+
+---
+
+### 🔹 System Prompt
+
+```text
+You are the Orchestrator Agent in a multi-agent financial intelligence system.
+
+Your task is to:
+- Understand the user's intent
+- Decide which specialized agents are required
+- Determine execution order
+- Specify what context each agent must read
+
+Rules:
+- Do NOT perform financial calculations
+- Do NOT generate user-facing advice
+- Do NOT access raw financial values
+- Output must be structured JSON only
+- Minimize the number of agents invoked
+```
+
+---
+
+### 🔹 Input
+
+```json
+{
+  "user_query": "...",
+  "available_agents": ["finance_reasoning", "knowledge", "explainability", "alert"],
+  "context_summary": {
+    "has_assets": true,
+    "has_liabilities": true,
+    "has_goals": true
+  }
+}
+```
+
+---
+
+### 🔹 Output
+
+```json
+{
+  "execution_plan": [
+    {
+      "agent": "finance_reasoning",
+      "context_required": ["net_worth", "liabilities", "cash_flow"]
+    },
+    {
+      "agent": "knowledge",
+      "context_required": ["tax_rules", "market_conditions"]
+    },
+    {
+      "agent": "explainability",
+      "context_required": ["agent_outputs"]
+    }
+  ],
+  "reason": "User query requires financial evaluation and external rule grounding"
+}
+```
+
+---
+
+### 📄 Paper Rationale
+
+> The orchestrator agent enforces separation of concerns by routing tasks to domain-specific agents, reducing cognitive overload and preventing unnecessary access to sensitive context.
+
+---
+
+## 2️⃣ Finance Reasoning Agent (Core Intelligence)
+
+### 🎯 Purpose
+
+Performs **all financial calculations and analysis**
+This is the *only* agent allowed to reason over numbers.
+
+---
+
+### 🔹 System Prompt
+
+```text
+You are a Finance Reasoning Agent.
+
+Your task is to:
+- Analyze structured financial context
+- Compute financial metrics
+- Identify risks and opportunities
+- Produce deterministic, step-by-step reasoning
+
+Rules:
+- Use ONLY provided context
+- Never invent financial values
+- Do NOT provide final advice to user
+- Do NOT expose raw sensitive values
+- Always show calculation logic
+- Output must be structured JSON
+```
+
+---
+
+### 🔹 Input
+
+```json
+{
+  "financial_context": {
+    "income_summary": "...",
+    "expense_summary": "...",
+    "assets_summary": "...",
+    "liabilities_summary": "..."
+  },
+  "user_goal": "retirement planning"
+}
+```
+
+---
+
+### 🔹 Output
+
+```json
+{
+  "metrics": {
+    "savings_rate": "Low",
+    "debt_to_income_ratio": "High",
+    "investment_diversification": "Moderate"
+  },
+  "signals_detected": [
+    "High EMI burden",
+    "Low emergency savings"
+  ],
+  "intermediate_reasoning": [
+    "Calculated DTI using monthly obligations",
+    "Evaluated savings rate from income-expense gap"
+  ]
+}
+```
+
+---
+
+### 📄 Paper Rationale
+
+> Separating numerical reasoning into a dedicated agent improves explainability, auditability, and reduces hallucination risk.
+
+---
+
+## 3️⃣ Knowledge Agent (Firecrawl MCP)
+
+### 🎯 Purpose
+
+Fetches **external facts**: tax rules, regulations, best practices
+❌ No calculations
+❌ No advice
+
+---
+
+### 🔹 System Prompt
+
+```text
+You are a Knowledge Agent.
+
+Your task is to:
+- Retrieve relevant factual information
+- Summarize rules and regulations
+- Provide source-grounded insights
+
+Rules:
+- Use only MCP-provided documents
+- Do NOT infer personalized advice
+- Do NOT calculate financial outcomes
+- Clearly separate facts from interpretations
+- Output must be structured JSON
+```
+
+---
+
+### 🔹 Input
+
+```json
+{
+  "query_topic": "Indian tax benefits for retirement savings",
+  "source": "Firecrawl MCP"
+}
+```
+
+---
+
+### 🔹 Output
+
+```json
+{
+  "facts": [
+    "Section 80C allows deductions up to ₹1.5 lakh",
+    "NPS offers additional ₹50,000 deduction under 80CCD(1B)"
+  ],
+  "source_type": "Government tax guidelines",
+  "confidence": "High"
+}
+```
+
+---
+
+### 📄 Paper Rationale
+
+> Isolating knowledge retrieval ensures factual grounding while preventing contamination of personalized reasoning.
+
+---
+
+## 4️⃣ Explainability Agent (Human Translator)
+
+### 🎯 Purpose
+
+Converts **agent outputs → human-understandable explanations**
+
+---
+
+### 🔹 System Prompt
+
+```text
+You are an Explainability Agent.
+
+Your task is to:
+- Convert structured agent outputs into human-readable explanations
+- Preserve reasoning transparency
+- Avoid technical jargon
+- Maintain privacy masking
+
+Rules:
+- Do NOT add new insights
+- Do NOT introduce new data
+- Keep explanations concise and clear
+- Always reference reasoning steps
+```
+
+---
+
+### 🔹 Input
+
+```json
+{
+  "finance_output": {...},
+  "knowledge_output": {...},
+  "confidence_level": "Medium"
+}
+```
+
+---
+
+### 🔹 Output
+
+```json
+{
+  "summary": "Your current financial position shows a high debt burden, which may delay retirement goals.",
+  "key_reasons": [
+    "A large portion of income goes toward EMIs",
+    "Savings rate is currently low"
+  ],
+  "assumptions_used": [
+    "Stable income",
+    "No major increase in expenses"
+  ],
+  "confidence": "Medium"
+}
+```
+
+---
+
+### 📄 Paper Rationale
+
+> The explainability agent bridges AI reasoning and user trust by explicitly mapping logic to conclusions.
+
+---
+
+## 5️⃣ Alert Agent (Proactive Intelligence)
+
+### 🎯 Purpose
+
+Detects **conditions that require proactive alerts**
+
+---
+
+### 🔹 System Prompt
+
+```text
+You are an Alert Agent.
+
+Your task is to:
+- Monitor financial signals
+- Detect risk or opportunity triggers
+- Generate concise alerts
+
+Rules:
+- Trigger alerts only when thresholds are crossed
+- Assign severity levels
+- Do NOT provide full advice
+```
+
+---
+
+### 🔹 Input
+
+```json
+{
+  "signals": [
+    "High credit utilization",
+    "Low savings rate"
+  ]
+}
+```
+
+---
+
+### 🔹 Output
+
+```json
+{
+  "alerts": [
+    {
+      "type": "Risk",
+      "title": "High Credit Utilization",
+      "severity": "High",
+      "reason": "Credit usage exceeds recommended threshold"
+    }
+  ]
+}
+```
+
+---
+
+### 📄 Paper Rationale
+
+> Proactive alert generation demonstrates real-time agent-driven intelligence beyond reactive chat systems.
+
+---
+
+## 6️⃣ Global Prompting Principles (VERY IMPORTANT)
+
+You should explicitly state these in your paper:
+
+* **Structured I/O only (JSON)**
+* **No free-form text between agents**
+* **Privacy masking before LLM calls**
+* **Single-responsibility per agent**
+* **Deterministic reasoning paths**
+
+---
+
+## 7️⃣ How This Helps Vibe Coding
+
+With these prompts:
+
+* You never wonder *“what should this agent do?”*
+* Debugging becomes trivial
+* Logs become readable
+* Research writing becomes easy
+
+You literally implement:
+
+```python
+response = agent.run(prompt, input_schema)
+```
+
+---
+
+## 🔥 Why This Is Research-Grade
+
+✔ Explicit agent contracts
+✔ Formal separation of concerns
+✔ Explainability by design
+✔ Privacy-aware prompting
+✔ Reproducible experiments
+
+---
+
+Excellent — this is one of the **most important artifacts** in your entire project.
+A **clean MCP context schema** is what will make your system:
+
+* Truly *MCP-based* (not fake MCP)
+* Easy to debug
+* Easy to explain in a research paper
+* Easy to extend with new agents
+* Safe from privacy leaks
+
+Below is a **research-grade MCP Context Schema**, designed **specifically for FinAgent**, aligned with:
+
+* fi-mcp-dev
+* Firecrawl MCP
+* Multi-agent orchestration
+* Privacy-first design
+* Explainability
+
+You can **directly implement this as JSON / Pydantic models**.
+
+---
+
+# 🧩 FinAgent — MCP Context Schema (FINAL)
+
+---
+
+## 1️⃣ MCP Context Philosophy (Important to Understand)
+
+In FinAgent, **MCP is NOT just data**.
+It is a **versioned, structured, governed memory system**.
+
+### Core principles:
+
+* Context is **read-only by default**
+* Agents must **declare intent** to read/write
+* Context is **layered**
+* Sensitive values are **masked before LLM access**
+* Every update is **versioned & auditable**
+
+---
+
+## 2️⃣ Top-Level MCP Context Object
+
+```json
+{
+  "context_id": "uuid",
+  "user_id": "uuid",
+  "created_at": "ISO-8601",
+  "last_updated": "ISO-8601",
+  "context_version": 7,
+  "privacy_level": "HIGH",
+  "layers": { }
+}
+```
+
+📄 **Paper language**:
+
+> We model user state as a versioned MCP context object composed of semantically isolated layers.
+
+---
+
+## 3️⃣ MCP Context Layers (Core Design)
+
+### 🔹 Layer 1: User Financial Context
+
+**Source:** Fi MCP (fi-mcp-dev)
+
+```json
+"user_financial_context": {
+  "source": "fi-mcp-dev",
+  "last_sync": "ISO-8601",
+  "data": {
+    "income_profile": {
+      "monthly_income_band": "HIGH | MEDIUM | LOW",
+      "income_stability": "STABLE | VARIABLE"
+    },
+    "assets_profile": {
+      "net_worth_band": "LOW | MEDIUM | HIGH",
+      "asset_classes": ["MF", "EPF", "STOCKS", "BANK"]
+    },
+    "liabilities_profile": {
+      "has_loans": true,
+      "debt_intensity": "LOW | MEDIUM | HIGH"
+    },
+    "credit_profile": {
+      "credit_score_band": "POOR | FAIR | GOOD | EXCELLENT",
+      "credit_utilization_band": "LOW | MEDIUM | HIGH"
+    }
+  }
+}
+```
+
+🔐 **Privacy note**:
+Raw values (₹, account numbers) are **never stored here** — only bands.
+
+---
+
+### 🔹 Layer 2: Transactional Signals (Derived)
+
+```json
+"transactional_signals": {
+  "source": "derived",
+  "computed_at": "ISO-8601",
+  "signals": {
+    "savings_rate_band": "LOW | MEDIUM | HIGH",
+    "emi_burden_band": "LOW | MEDIUM | HIGH",
+    "spending_volatility": "LOW | HIGH"
+  }
+}
+```
+
+📄 **Paper angle**:
+
+> Derived signals decouple sensitive raw data from downstream reasoning.
+
+---
+
+### 🔹 Layer 3: User Goals Context
+
+```json
+"user_goals_context": {
+  "source": "user",
+  "goals": [
+    {
+      "goal_id": "uuid",
+      "goal_type": "RETIREMENT | EMERGENCY | EDUCATION",
+      "target_horizon": "SHORT | MEDIUM | LONG",
+      "priority": "HIGH | MEDIUM | LOW"
+    }
+  ]
+}
+```
+
+---
+
+### 🔹 Layer 4: External Knowledge Context
+
+**Source:** Firecrawl MCP
+
+```json
+"external_knowledge_context": {
+  "source": "firecrawl-mcp",
+  "last_updated": "ISO-8601",
+  "knowledge_items": [
+    {
+      "topic": "Tax benefits",
+      "summary": "80C and NPS deductions available",
+      "confidence": "HIGH"
+    }
+  ]
+}
+```
+
+📄 **Paper angle**:
+
+> External knowledge is isolated from personal data to prevent leakage.
+
+---
+
+### 🔹 Layer 5: Agent Working Memory (Ephemeral)
+
+```json
+"agent_working_memory": {
+  "session_id": "uuid",
+  "entries": [
+    {
+      "agent": "finance_reasoning",
+      "timestamp": "ISO-8601",
+      "notes": "High EMI burden detected"
+    }
+  ]
+}
+```
+
+⏱️ **Lifecycle**:
+
+* Cleared after session
+* Never persisted long-term
+
+---
+
+### 🔹 Layer 6: Explainability & Audit Context
+
+```json
+"explainability_context": {
+  "agent_trace": [
+    {
+      "agent": "finance_reasoning",
+      "used_layers": ["user_financial_context", "transactional_signals"],
+      "reasoning_steps": [
+        "Evaluated savings rate",
+        "Checked debt intensity"
+      ]
+    }
+  ],
+  "confidence_score": "MEDIUM"
+}
+```
+
+📄 **Paper angle**:
+
+> Agent traceability enables post-hoc explainability and auditing.
+
+---
+
+### 🔹 Layer 7: Alert Context
+
+```json
+"alert_context": {
+  "active_alerts": [
+    {
+      "alert_id": "uuid",
+      "type": "RISK | OPPORTUNITY",
+      "severity": "LOW | MEDIUM | HIGH",
+      "triggered_by": "finance_reasoning",
+      "status": "ACTIVE | DISMISSED"
+    }
+  ]
+}
+```
+
+---
+
+## 4️⃣ Context Access Control (CRITICAL)
+
+Every agent must declare:
+
+```json
+{
+  "agent": "finance_reasoning",
+  "read_layers": [
+    "user_financial_context",
+    "transactional_signals",
+    "user_goals_context"
+  ],
+  "write_layers": [
+    "agent_working_memory",
+    "explainability_context"
+  ]
+}
+```
+
+📄 **Paper sentence**:
+
+> Agents operate under strict context access contracts, preventing unauthorized data exposure.
+
+---
+
+## 5️⃣ Context Update Rules
+
+| Rule         | Description                              |
+| ------------ | ---------------------------------------- |
+| Versioning   | Every write increments `context_version` |
+| Immutability | Past versions are read-only              |
+| Masking      | Raw values never enter LLM prompts       |
+| Expiry       | Working memory expires per session       |
+| Audit        | All writes are logged                    |
+
+---
+
+## 6️⃣ How LLM Sees MCP Context (VERY IMPORTANT)
+
+❌ **Never pass full context**
+✅ Pass **LLM-safe projection**:
+
+```json
+{
+  "financial_summary": {
+    "income": "HIGH",
+    "savings_rate": "LOW",
+    "debt_level": "HIGH"
+  },
+  "goals": ["RETIREMENT"],
+  "external_rules": ["80C deductions available"]
+}
+```
+
+This is what makes your system:
+
+* Safe
+* Deterministic
+* Explainable
+
+---
+
+## 7️⃣ How This Helps Your Research Paper
+
+You can claim:
+
+* MCP as **formal context abstraction**
+* Privacy-preserving context design
+* Agent-level access control
+* Versioned reasoning
+
+Most papers **do not** go this deep.
+
+---
+
+## 8️⃣ Why This Schema Will Make You Stand Out
+
+✔ Real MCP semantics
+✔ Privacy-first
+✔ Multi-agent ready
+✔ Explainability by design
+✔ Easily extensible
+
+---

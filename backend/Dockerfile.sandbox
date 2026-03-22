@@ -1,0 +1,29 @@
+
+# Use slim Python image
+FROM python:3.11-slim
+
+# Install system dependencies for scipy/numpy/matplotlib if needed
+# (slim usually needs some basics)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PyData stack
+RUN pip install --no-cache-dir \
+    pandas \
+    numpy \
+    matplotlib \
+    scipy \
+    scikit-learn \
+    statsmodels \
+    yfinance
+
+# Create working directory
+WORKDIR /app
+
+# Run as non-root user for security
+RUN useradd -m sandboxuser
+USER sandboxuser
+
+# Default command matches what we expect in sandbox.py (but we override it anyway)
+CMD ["python"]

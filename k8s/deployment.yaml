@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finagent-backend
+  labels:
+    app: finagent
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: finagent
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: finagent
+        component: backend
+    spec:
+      containers:
+      - name: finagent-backend
+        image: finagent/backend:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        env:
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: finagent-config
+              key: redis_url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: finagent-secrets
+              key: database_url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: finagent-secrets
+              key: openai_api_key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: finagent-secrets
+              key: gemini_api_key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finagent-backend-service
+  labels:
+    app: finagent
+spec:
+  selector:
+    app: finagent
+    component: backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finagent-config
+data:
+  redis_url: "redis://redis-service:6379"
+  log_level: "INFO"
+  environment: "production"
+  cache_ttl: "300"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: finagent-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: finagent-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: finagent-secrets
+type: Opaque
+stringData:
+  database_url: "sqlite:///./finagent.db"
+  openai_api_key: "YOUR_OPENAI_API_KEY"
+  gemini_api_key: "YOUR_GEMINI_API_KEY"

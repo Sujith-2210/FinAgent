@@ -1,0 +1,69 @@
+# OS/editor artifacts
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+*.bak
+*.backup
+*.bak2
+*.orig
+*.rej
+*.tavily_insert
+
+# Virtual environments
+venv/
+backend/venv/
+
+# Environment and secrets
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# Runtime artifacts
+*.log
+dump.rdb
+backend/.workspace/
+backend/workspace/
+workspace/
+demo_workspace/
+response_raw.txt
+final_test_response.json
+test_response*.json
+
+# Databases and large local data
+*.db
+backend/*.db
+data/
+backend/data/
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Cloned repos (not part of this project)
+TradingAgents/
+Refer/
+
+# Fi MCP Dev (Go binary artifacts)
+fi-mcp-dev/fi-mcp-server
+fi-mcp-dev/*.exe
+
+# Agent temp artifacts
+.gemini/
+.kiro/
+
+# Test/verify scripts
+backend/verify_*.py
+backend/test_*.py
+
+# Misc docs not for repo
+Hima*.docx
+

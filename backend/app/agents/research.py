@@ -1,0 +1,164 @@
+"""
+Deep Research Agent
+Orchestrates comprehensive financial research reports by breaking down topics and delegating to Knowledge Agent.
+Inspired by FinSight's "Collector -> Analyzer -> Reporter" pipeline.
+"""
+
+from typing import Dict, Any, List, Optional
+from loguru import logger
+from app.agents.base import BaseAgent
+from app.agents.knowledge import KnowledgeAgent
+
+class DeepResearchAgent(BaseAgent):
+    """
+    Deep Research Agent - Produces comprehensive reports.
+    
+    Responsibilities:
+    - Plan research: Break topic into sub-questions (e.g., Financials, News, Risks).
+    - Execute research: Loop through sub-questions using Knowledge Agent.
+    - Synthesize: Combine findings into a structured Markdown report.
+    """
+    
+    def __init__(self, knowledge_agent: KnowledgeAgent = None):
+        super().__init__()
+        self.name = "deep_research"
+        self.description = "Generates comprehensive deep-dive research reports"
+        self.read_layers = {"external_knowledge_context"}
+        self.write_layers = {"agent_working_memory", "external_knowledge_context"}
+        self._knowledge_agent = knowledge_agent
+        
+    def set_knowledge_agent(self, agent: KnowledgeAgent):
+        """Set the Knowledge Agent worker."""
+        self._knowledge_agent = agent
+        
+    @property
+    def input_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "research_topic": {"type": "string"},
+                "focus_areas": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": ["research_topic"]
+        }
+        
+    @property
+    def output_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "report_markdown": {"type": "string"},
+                "sources_used": {"type": "array", "items": {"type": "string"}},
+                "summary": {"type": "string"}
+            }
+        }
+
+    async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute deep research pipeline.
+        """
+        topic = input_data.get("research_topic")
+        focus_areas = input_data.get("focus_areas", [])
+        
+        self.add_reasoning_step(f"Starting deep research on: {topic}")
+        
+        # 1. Plan Research
+        plan = self._create_research_plan(topic, focus_areas)
+        self.add_reasoning_step(f"Created research plan with {len(plan)} sections")
+        
+        # 2. Execute Research (Loop)
+        findings = {}
+        all_sources = []
+        
+        if not self._knowledge_agent:
+            self.add_reasoning_step("ERROR: Knowledge Agent not connected")
+            return {"report_markdown": "Error: Research resources unavailable.", "summary": "Failed"}
+            
+        for section_title, queries in plan.items():
+            section_content = []
+            for query in queries:
+                self.add_reasoning_step(f"Researching: {query}")
+                
+                # Delegate to Knowledge Agent
+                try:
+                    res = await self._knowledge_agent.process({"query_topic": query})
+                    
+                    if res.get("facts"):
+                        section_content.extend(res["facts"])
+                    if res.get("sources"):
+                        all_sources.extend(res["sources"])
+                        
+                except Exception as e:
+                    logger.warning(f"Research sub-task failed: {e}")
+            
+            findings[section_title] = section_content
+            
+        # 3. Synthesize Report
+        report = self._generate_report(topic, findings)
+        self.add_reasoning_step("Synthesized final report")
+        
+        return {
+            "report_markdown": report,
+            "sources_used": [s.get("title", "Unknown") for s in all_sources],
+            "summary": f"Completed deep research on {topic}. Generated {len(report)} char report."
+        }
+
+    def _create_research_plan(self, topic: str, focus_areas: List[str]) -> Dict[str, List[str]]:
+        """
+        Create a deterministic research plan.
+        In the future, this can be LLM-driven.
+        """
+        plan = {}
+        
+        # Default Structure
+        plan["Market Overview"] = [
+            f"current market price and trends for {topic}",
+            f"key news and recent events {topic}"
+        ]
+        
+        plan["Financial Health"] = [
+            f"financial performance revenue profit {topic}",
+            f"major products and revenue streams {topic}"
+        ]
+        
+        plan["Risk Factors"] = [
+            f"investment risks and challenges {topic}",
+            f"regulatory issues or legal problems {topic}"
+        ]
+        
+        # Add custom focus areas
+        for area in focus_areas:
+            plan[area] = [f"{area} details for {topic}"]
+            
+        return plan
+
+    def _generate_report(self, topic: str, findings: Dict[str, List[str]]) -> str:
+        """Synthesize findings into Markdown."""
+        lines = [f"# Deep Research Report: {topic}", ""]
+        
+        lines.append("> **Generated by FinAgent Deep Research Pipeline**")
+        lines.append(f"> Date: {import_datetime().strftime('%Y-%m-%d')}")
+        lines.append("")
+        
+        if not any(findings.values()):
+             return "Unable to gather sufficient information for this report."
+
+        for section, content in findings.items():
+            lines.append(f"## {section}")
+            if content:
+                # Deduplicate and bullet points
+                unique_facts = sorted(list(set(content)))
+                for fact in unique_facts:
+                    lines.append(f"- {fact}")
+            else:
+                lines.append("_No significant data found._")
+            lines.append("")
+            
+        lines.append("## Conclusion")
+        lines.append("Based on the gathered data, this report highlights key market movements, financial health, and potential risks. Further due diligence is recommended.")
+        
+        return "\n".join(lines)
+
+def import_datetime():
+    from datetime import datetime
+    return datetime.now()
