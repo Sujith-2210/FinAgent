@@ -418,11 +418,23 @@ class AgentCoordinator:
                 )
             }
         
-
+        elif agent_name == "graph_reasoning":
+            input_data["query_topic"] = query
+            input_data["analysis_type"] = "network"
+            # Pass stock/company info if available from orchestrator
+            if hasattr(self, '_current_step') and self._current_step:
+                step_input = self._current_step.get("input", {})
+                if step_input.get("analysis_type"):
+                    input_data["analysis_type"] = step_input["analysis_type"]
         
         elif agent_name == "deep_research":
             input_data["research_topic"] = query
-            input_data["focus_areas"] = [] # Can extract from query if needed
+            input_data["focus_areas"] = []
+            # Extract focus areas from orchestrator step input if available
+            if hasattr(self, '_current_step') and self._current_step:
+                step_input = self._current_step.get("input", {})
+                if step_input.get("focus_areas"):
+                    input_data["focus_areas"] = step_input["focus_areas"]
         
         elif agent_name == "code":
             input_data["query_topic"] = query
@@ -472,6 +484,8 @@ class AgentCoordinator:
                 "code": code_output,
                 "alert": agent_results.get("alert", AgentResult(success=False, output={})).output,
                 "trading_analysis": agent_results.get("trading_analysis", AgentResult(success=False, output={})).output,
+                "graph_reasoning": agent_results.get("graph_reasoning", AgentResult(success=False, output={})).output,
+                "deep_research": agent_results.get("deep_research", AgentResult(success=False, output={})).output,
                 "execution_trace": self._agent_traces,
             },
             "confidence_level": self._aggregate_confidence(agent_results),

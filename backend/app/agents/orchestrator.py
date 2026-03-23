@@ -310,6 +310,18 @@ Available agents:
             })
             # Skip code agent for discovery queries unless explicitly requested later
             # This prevents CodeAgent from trying to "analyze" an unknown symbol
+        
+        # 0.5. Even in discovery mode, add code agent if explicit analysis is requested
+        analysis_in_discovery_keywords = ["volatile", "volatility", "chart", "plot", "graph", "visualize", "calculate"]
+        if is_discovery and any(kw in query_lower for kw in analysis_in_discovery_keywords):
+            self.add_reasoning_step("Discovery query with analysis requirement - also invoking Code_Agent")
+            plan.append({
+                "agent": "code",
+                "input": {
+                    "query_topic": query
+                },
+                "context_required": ["agent_working_memory"]
+            })
 
         # CRITICAL FIX: Ensure Graph_Reasoning_Agent is invoked for GRAPH_QUERY intent
         if intent == "GRAPH_QUERY":
@@ -328,7 +340,7 @@ Available agents:
         
         # Also check for explicit graph keywords as fallback
         graph_keywords = ["impact", "affect", "connection", "network", "relationship", 
-                         "upstream", "downstream", "supply chain", "supplier", "controversy", "esg"]
+                         "upstream", "downstream", "supply chain", "supplier", "controversy", "controversies", "esg"]
         if not any(p["agent"] == "graph_reasoning" for p in plan):
             if any(keyword in query_lower for keyword in graph_keywords):
                 if is_personal_income_rebalance_query:
@@ -554,6 +566,27 @@ Available agents:
                         "context_required": ["external_knowledge_context"]
                     })
         
+        # 5.5. Deep Research for domain-heavy knowledge queries
+        # Ensures comprehensive multi-source research for regulatory, tax, and policy queries
+        regulatory_deep_research_keywords = [
+            "latest", "scheme", "schemes", "regime", "rules for", "regulations for",
+            "guidelines", "policy", "policies", "compliance", "sebi rules",
+            "tax saving", "tax regime", "budget 2024", "budget 2025",
+            "new rules", "updated rules", "recent changes", "amendment",
+            "circular", "notification", "rbi circular", "sebi circular"
+        ]
+        if not any(p["agent"] == "deep_research" for p in plan):
+            if any(kw in query_lower for kw in regulatory_deep_research_keywords):
+                self.add_reasoning_step("Regulatory/domain keywords detected - invoking Deep_Research_Agent for comprehensive coverage")
+                plan.append({
+                    "agent": "deep_research",
+                    "input": {
+                        "research_topic": query,
+                        "focus_areas": []
+                    },
+                    "context_required": ["external_knowledge_context"]
+                })
+        
         # 6. Validate execution plan completeness
         # Ensure we have at least one agent besides explainability
         if not plan:
@@ -714,7 +747,7 @@ Available agents:
         graph_keywords = [
             "impact", "affect", "connection", "network", "relationship",
             "upstream", "downstream", "supply chain", "supplier", "dependency",
-            "controversy", "esg", "connected", "related to", "influence"
+            "controversy", "controversies", "esg", "connected", "related to", "influence"
         ]
         if any(keyword in query_lower for keyword in graph_keywords):
             return "GRAPH_QUERY"

@@ -214,6 +214,187 @@ Rules:
                     ],
                     "source": "Market Analysis (Demo Data)"
                 }
+            ],
+            "sebi": [
+                {
+                    "topic": "SEBI Regulations",
+                    "facts": [
+                        "SEBI (Securities and Exchange Board of India) regulates the securities market",
+                        "SEBI mandates T+1 settlement cycle for equity trades since January 2023",
+                        "Minimum lot size for F&O trading increased to ₹5-10 lakh notional value",
+                        "SEBI requires brokers to collect margins upfront under new peak margin norms",
+                        "Listed companies must have minimum 25% public shareholding",
+                        "SEBI circular on ESG disclosures mandatory for top 1000 listed companies"
+                    ],
+                    "source": "SEBI Regulations 2024-25"
+                },
+                {
+                    "topic": "SEBI Investor Protection",
+                    "facts": [
+                        "SEBI Investor Protection Fund covers up to ₹25 lakh per investor per broker default",
+                        "KYC is mandatory for all securities market participants",
+                        "SEBI mandates risk disclosure requirement for derivatives trading",
+                        "Investor complaints can be filed through SCORES (SEBI Complaints Redressal System)"
+                    ],
+                    "source": "SEBI Guidelines"
+                }
+            ],
+            "controversy": [
+                {
+                    "topic": "Stock Controversy Detection",
+                    "facts": [
+                        "ESG (Environmental, Social, Governance) scores help identify controversial stocks",
+                        "SEBI mandates Business Responsibility and Sustainability Reporting (BRSR) for top 1000 companies",
+                        "Corporate governance lapses include related-party transactions, board independence issues",
+                        "Regulatory actions, SEBI investigations, and NCLT proceedings are red flags",
+                        "Check for promoter pledge levels — high pledge ratios indicate corporate stress"
+                    ],
+                    "source": "Corporate Governance Analysis"
+                }
+            ],
+            "intraday": [
+                {
+                    "topic": "Intraday Trading Rules India",
+                    "facts": [
+                        "Intraday trading requires a demat and trading account with a SEBI-registered broker",
+                        "SEBI mandates brokers to collect VaR + ELM margins for intraday positions",
+                        "Intraday positions are auto-squared off before market close (typically 3:15 PM IST)",
+                        "STT on intraday equity is 0.025% on sell side only (reduced from 0.05% in Budget 2024)",
+                        "Profits from intraday trading are classified as speculative business income for tax purposes",
+                        "SEBI circular restricts leveraged intraday exposure; maximum leverage varies by broker",
+                        "Pattern Day Trader rules don't apply in India — no minimum balance requirement"
+                    ],
+                    "source": "SEBI Trading Regulations 2024-25"
+                }
+            ],
+            "tax regime": [
+                {
+                    "topic": "Old vs New Tax Regime India",
+                    "facts": [
+                        "New Tax Regime (default from FY 2023-24): No deductions except ₹50,000 standard deduction",
+                        "New regime slabs: ₹0-3L (0%), ₹3-7L (5%), ₹7-10L (10%), ₹10-12L (15%), ₹12-15L (20%), ₹15L+ (30%)",
+                        "Old regime allows deductions: 80C (₹1.5L), 80D (₹25-50K), HRA, LTA, etc.",
+                        "Old regime slabs: ₹0-2.5L (0%), ₹2.5-5L (5%), ₹5-10L (20%), ₹10L+ (30%)",
+                        "New regime beneficial if total deductions are less than ₹3.75 lakh",
+                        "Salaried individuals can switch between regimes each year; business owners cannot switch back to old after choosing new",
+                        "Rebate under Section 87A: No tax up to ₹7 lakh income under new regime"
+                    ],
+                    "source": "Income Tax Act (Finance Act 2024)"
+                }
+            ],
+            "tax saving": [
+                {
+                    "topic": "Tax Saving Schemes 2024",
+                    "facts": [
+                        "ELSS (Equity Linked Savings Scheme): 80C deduction, 3-year lock-in, equity market returns",
+                        "PPF (Public Provident Fund): 80C deduction, 15-year lock-in, ~7.1% interest, EEE status",
+                        "NPS: Additional ₹50,000 deduction under 80CCD(1B), market-linked returns",
+                        "Life Insurance Premiums: 80C deduction, term plans recommended for pure protection",
+                        "SSY (Sukanya Samriddhi Yojana): 80C deduction, 8.2% interest, for girl child",
+                        "Home Loan: 80C for principal (₹1.5L), Section 24 for interest (₹2L for self-occupied)",
+                        "Health Insurance (80D): ₹25,000 for self/family, ₹50,000 for senior citizen parents"
+                    ],
+                    "source": "Income Tax Act 2024-25"
+                }
+            ],
+            "rbi": [
+                {
+                    "topic": "RBI Policies",
+                    "facts": [
+                        "RBI repo rate at 6.50% (as of early 2024), influencing lending rates across banks",
+                        "RBI mandates minimum CRR of 4.5% and SLR of 18% for commercial banks",
+                        "Inflation targeting framework: RBI targets 4% CPI inflation with ±2% band",
+                        "Digital rupee (e₹) pilot launched for wholesale and retail segments",
+                        "UPI transaction limit increased to ₹5 lakh for certain categories",
+                        "RBI guidelines on personal loan securitization tightened in November 2023"
+                    ],
+                    "source": "RBI Monetary Policy 2024"
+                }
+            ],
+            "insurance": [
+                {
+                    "topic": "Insurance in India",
+                    "facts": [
+                        "Term insurance recommended: ₹1 crore cover available at ₹8,000-15,000/year for age 25-30",
+                        "Health insurance: ₹5 lakh cover minimum recommended, super top-up for additional coverage",
+                        "Section 80D allows deduction up to ₹25,000 for health insurance premium",
+                        "LIC policies: Traditional plans offer lower returns (~5-6%) vs mutual funds",
+                        "IRDAI mandates standard products: Saral Jeevan Bima, Arogya Sanjeevani",
+                        "Motor insurance: Third-party mandatory, comprehensive recommended"
+                    ],
+                    "source": "IRDAI Regulations"
+                }
+            ],
+            "gold": [
+                {
+                    "topic": "Gold Investment India",
+                    "facts": [
+                        "Sovereign Gold Bonds (SGBs): 2.5% annual interest + gold price appreciation, 8-year tenure",
+                        "Gold ETFs: No making charges, stored digitally, traded on exchanges",
+                        "Digital Gold: Available through apps, minimum ₹1 investment",
+                        "Physical gold: Making charges 8-25%, storage risk, no income generation",
+                        "Gold LTCG tax: 12.5% after 3 years (for bonds and ETFs from FY 2024-25)",
+                        "Ideal portfolio allocation for gold: 5-15% for diversification"
+                    ],
+                    "source": "Investment Analysis"
+                }
+            ],
+            "real estate": [
+                {
+                    "topic": "Real Estate Investment India",
+                    "facts": [
+                        "RERA (Real Estate Regulation Act) protects homebuyers; all projects must be RERA registered",
+                        "Home loan interest deduction up to ₹2 lakh under Section 24 for self-occupied property",
+                        "Stamp duty typically 5-7% of property value, varies by state",
+                        "REITs (Real Estate Investment Trusts) allow fractional real estate investment from ₹10,000-15,000",
+                        "Circle rate or guidance value is minimum registration value set by state government",
+                        "GST on under-construction property: 5% without ITC, 1% for affordable housing"
+                    ],
+                    "source": "RERA & Tax Regulations"
+                }
+            ],
+            "fd": [
+                {
+                    "topic": "Fixed Deposit Rates",
+                    "facts": [
+                        "SBI FD rates: 6.5-7.1% for general, 7.0-7.6% for senior citizens (2024)",
+                        "Tax-saving FD: 5-year lock-in, 80C deduction up to ₹1.5 lakh",
+                        "Interest is fully taxable; TDS deducted at 10% if interest exceeds ₹40,000/year",
+                        "Post Office Term Deposits: Government-backed, slightly higher rates than banks",
+                        "Corporate FDs offer 1-2% higher rates but carry more credit risk",
+                        "Premature withdrawal penalty: typically 0.5-1% reduction in applicable rate"
+                    ],
+                    "source": "Banking Regulations 2024"
+                }
+            ],
+            "ppf": [
+                {
+                    "topic": "PPF (Public Provident Fund)",
+                    "facts": [
+                        "PPF interest rate: 7.1% per annum (Q1 FY 2024-25), compounded annually",
+                        "Tenure: 15 years, extendable in blocks of 5 years",
+                        "Minimum deposit: ₹500/year, Maximum: ₹1.5 lakh/year",
+                        "EEE (Exempt-Exempt-Exempt) status: Contribution, interest, and maturity all tax-free",
+                        "Partial withdrawal allowed from 7th year onwards (up to 50% of balance)",
+                        "Loan facility available from 3rd to 6th year at 1% above PPF interest rate",
+                        "PPF account can be opened at post office or any nationalized bank"
+                    ],
+                    "source": "PPF Act & Government Notifications"
+                }
+            ],
+            "sip": [
+                {
+                    "topic": "SIP (Systematic Investment Plan)",
+                    "facts": [
+                        "SIP allows investing as low as ₹100-500 per month in mutual funds",
+                        "Rupee cost averaging reduces impact of market volatility over time",
+                        "SIP in Nifty 50 index fund has delivered ~12-15% CAGR over 10+ years",
+                        "Step-up SIP: Increase SIP amount annually by 10-15% for wealth acceleration",
+                        "SIP date doesn't significantly impact long-term returns",
+                        "Equity SIP should be held for minimum 5-7 years for optimal returns"
+                    ],
+                    "source": "AMFI & Mutual Fund Analysis"
+                }
             ]
         }
     

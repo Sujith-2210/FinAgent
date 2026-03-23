@@ -1000,6 +1000,27 @@ Confidence intervals provide uncertainty estimates for the predictions.
                     return {"result": "Sandbox service not available."}
             
             # For non-prediction queries or when stock_symbol is not available, use LLM
+            # ENHANCEMENT: Add explicit visualization instructions for analysis queries
+            analysis_viz_keywords = ['volatility', 'volatile', 'std', 'variance', 'correlation',
+                                     'compare', 'top', 'best', 'worst', 'performance', 'returns',
+                                     'growth', 'decline', 'chart', 'plot', 'graph', 'visualize',
+                                     'show', 'allocation', 'distribution', 'portfolio']
+            is_analysis_query = any(keyword in query.lower() for keyword in analysis_viz_keywords)
+            
+            if is_analysis_query and not is_prediction_query:
+                prompt += "\n\nIMPORTANT ANALYSIS & VISUALIZATION REQUIREMENTS:"
+                prompt += "\n- ALWAYS generate a matplotlib chart (bar chart, line chart, pie chart, etc.)"
+                prompt += "\n- Use matplotlib correctly:"
+                prompt += "\n  import matplotlib"
+                prompt += "\n  matplotlib.use('Agg')"
+                prompt += "\n  import matplotlib.pyplot as plt"
+                prompt += "\n- For volatility: calculate std() or variance on daily returns"
+                prompt += "\n- For comparisons: use bar charts with proper labels"
+                prompt += "\n- For portfolio/allocation: use pie charts"
+                prompt += "\n- Always call plt.savefig('analysis_chart.png', dpi=100, bbox_inches='tight')"
+                prompt += "\n- Print numerical results to stdout"
+                prompt += "\n- Use professional styling: grid, colors, proper titles and labels"
+            
             if is_prediction_query:
                 stock_ticker = stock_symbol if stock_symbol else "TICKER"
                 prompt += f"\n\n⚠️ PREDICTION REQUIRED - Copy this COMPLETE template and adapt:"
