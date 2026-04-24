@@ -161,6 +161,12 @@ export default function AlertsPage() {
                                                 <span>Triggered by: {alert.triggered_by}</span>
                                                 <span>•</span>
                                                 <span>Type: {alert.type}</span>
+                                                {alert.triggered_by.includes('ai4finance') && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="text-primary-300">AI4Finance</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

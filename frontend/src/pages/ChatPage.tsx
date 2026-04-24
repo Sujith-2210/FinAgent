@@ -20,6 +20,7 @@ interface Message {
     agentsInvolved?: string[]
     reasoning?: string[]
     actions?: ChatAction[]
+    sentimentSignal?: SentimentSignal
 }
 
 interface AgentContribution {
@@ -59,6 +60,18 @@ interface RunMetrics {
     requestStatus: 'idle' | 'processing' | 'success' | 'error'
     lastUpdated: Date | null
     apiMetrics: Record<string, unknown>
+    sentimentSignal?: SentimentSignal
+}
+
+interface SentimentSignal {
+    checked: boolean
+    created_alert?: boolean
+    message?: string
+    sentiment?: {
+        score?: number
+        label?: string
+        provider?: string
+    }
 }
 
 interface WebkitSpeechRecognitionResult {
@@ -128,6 +141,18 @@ const metricValueToText = (value: unknown): string => {
     }
 }
 
+const parseSentimentSignal = (metrics: Record<string, unknown>): SentimentSignal | undefined => {
+    const rawSignal = metrics.sentiment_signal
+    if (!rawSignal || typeof rawSignal !== 'object') return undefined
+    return rawSignal as SentimentSignal
+}
+
+const parseExternalResearchBrief = (metrics: Record<string, unknown>): Record<string, unknown> | undefined => {
+    const rawBrief = metrics.external_research_brief
+    if (!rawBrief || typeof rawBrief !== 'object') return undefined
+    return rawBrief as Record<string, unknown>
+}
+
 const defaultWelcomeMessage: Message = {
     id: '1',
     role: 'assistant',
@@ -153,6 +178,7 @@ const defaultMetrics: RunMetrics = {
     requestStatus: 'idle',
     lastUpdated: null,
     apiMetrics: {},
+    sentimentSignal: undefined,
 }
 
 function loadFromSession<T>(key: string, fallback: T): T {
@@ -311,6 +337,9 @@ export default function ChatPage() {
             const contributions = data.agent_contributions || []
             const agentsInvolved = data.agents_involved || []
             const actions = data.actions || []
+            const apiMetrics = data.metrics_used || {}
+            const sentimentSignal = parseSentimentSignal(apiMetrics)
+            const externalResearchBrief = parseExternalResearchBrief(apiMetrics)
             const reasoningSteps = contributions.reduce((sum, contribution) => sum + contribution.reasoning.length, 0)
             const latencyMs = Math.round(performance.now() - requestStartedAt)
 
@@ -327,6 +356,7 @@ export default function ChatPage() {
                 agentsInvolved,
                 reasoning: contributions.flatMap((c: AgentContribution) => c.reasoning),
                 actions,
+                sentimentSignal,
             }
 
             setMessages(prev => [...prev, assistantMessage])
@@ -338,7 +368,8 @@ export default function ChatPage() {
                 confidenceSummary: summarizeConfidence(contributions),
                 requestStatus: 'success',
                 lastUpdated: new Date(),
-                apiMetrics: data.metrics_used || {},
+                apiMetrics,
+                sentimentSignal,
             })
 
             if (contributions.length > 0) {
@@ -367,12 +398,33 @@ export default function ChatPage() {
                 title: 'Response Delivered',
                 detail: `Completed in ${latencyMs} ms.`,
             })
+
+            if (sentimentSignal?.checked) {
+                const isAlertCreated = Boolean(sentimentSignal.created_alert)
+                const sentimentLabel = sentimentSignal.sentiment?.label || 'NEUTRAL'
+                addTimelineEvent({
+                    eventType: 'system',
+                    title: isAlertCreated ? 'Sentiment Alert Generated' : 'Sentiment Checked',
+                    detail: `Signal: ${sentimentLabel}${isAlertCreated ? ' (alert created)' : ''}`,
+                })
+            }
+
+            if (externalResearchBrief) {
+                const provider = metricValueToText(externalResearchBrief.provider)
+                const available = metricValueToText(externalResearchBrief.is_finance_agent_available)
+                addTimelineEvent({
+                    eventType: 'system',
+                    title: 'Context-Aware Research Brief',
+                    detail: `Provider: ${provider}, finance-agent available: ${available}`,
+                })
+            }
         } catch (error) {
             console.error('Chat request failed:', error)
             setRunMetrics((prev) => ({
                 ...prev,
                 requestStatus: 'error',
                 lastUpdated: new Date(),
+                sentimentSignal: undefined,
             }))
             addTimelineEvent({
                 eventType: 'error',
@@ -460,6 +512,18 @@ export default function ChatPage() {
                                                 {agent}
                                             </span>
                                         ))}
+                                    </div>
+                                )}
+
+                                {msg.sentimentSignal?.checked && (
+                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                        <span className="text-xs text-slate-500">Signal:</span>
+                                        <span className={`badge ${msg.sentimentSignal.created_alert ? 'badge-warning' : 'badge-info'}`}>
+                                            {msg.sentimentSignal.sentiment?.label || 'NEUTRAL'}
+                                        </span>
+                                        {msg.sentimentSignal.created_alert && (
+                                            <span className="badge badge-danger">Alert generated</span>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -581,6 +645,14 @@ export default function ChatPage() {
                                 <div className="mt-3 text-xs text-slate-500 flex items-center gap-1">
                                     <Timer className="w-3 h-3" />
                                     Last run: {runMetrics.lastUpdated.toLocaleTimeString()}
+                                </div>
+                            )}
+                            {runMetrics.sentimentSignal?.checked && (
+                                <div className="mt-2 text-xs text-slate-300">
+                                    Sentiment: <span className="font-semibold">{runMetrics.sentimentSignal.sentiment?.label || 'NEUTRAL'}</span>
+                                    {runMetrics.sentimentSignal.created_alert && (
+                                        <span className="text-yellow-300"> (alert generated)</span>
+                                    )}
                                 </div>
                             )}
                         </div>

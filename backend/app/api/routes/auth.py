@@ -83,16 +83,25 @@ async def register_user(payload: RegisterRequest, session: AsyncSession = Depend
     )
 
 
+from fastapi.security import OAuth2PasswordRequestForm
+
+
 @router.post("/login", response_model=TokenResponse)
-async def login_user(payload: LoginRequest, session: AsyncSession = Depends(get_session)):
-    """Authenticate a user with email/password and issue an access token."""
-    normalized_email = payload.email.lower().strip()
+async def login_user(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_session)
+):
+    """Authenticate a user with email/password and issue an access token.
+    
+    Accepts OAuth2 form data (username=email, password) for Swagger UI compatibility.
+    """
+    normalized_email = form_data.username.lower().strip()
     if "@" not in normalized_email:
         raise HTTPException(status_code=400, detail="Invalid email format")
     result = await session.execute(select(User).where(User.email == normalized_email))
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(payload.password, user.hashed_password):
+    if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

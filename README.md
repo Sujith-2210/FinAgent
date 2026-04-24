@@ -180,6 +180,51 @@ go run main.go
 | API Docs (Swagger) | http://localhost:8000/docs |
 | Health Check | http://localhost:8000/health |
 
+### 4. End-to-End Verification
+
+Run these checks after startup:
+
+```bash
+# Frontend quality + build
+npm --prefix frontend run lint
+npm --prefix frontend run build
+
+# Backend smoke tests
+cd backend
+PYTHONPATH=. pytest app/tests/test_sandbox_service.py -q
+PYTHONPATH=. pytest app/tests/test_finance_research_adapter.py -q
+```
+
+Functional checks:
+
+- Sign in and open Chat page.
+- Ask a market query (example: `Summarize earnings sentiment for HDFC Bank and key risks`).
+- Confirm timeline shows:
+  - `Sentiment Checked` or `Sentiment Alert Generated`
+  - `Context-Aware Research Brief`
+- Open Alerts page and verify AI4Finance-generated alerts are tagged.
+
+Or run the one-shot verifier:
+
+```bash
+bash scripts/verify_e2e.sh
+```
+
+Optional workspace cleanup (safe artifacts only):
+
+```bash
+# Preview
+bash scripts/clean_workspace.sh --dry-run
+
+# Apply cleanup
+bash scripts/clean_workspace.sh --apply
+```
+
+Deployment and release references:
+
+- `DEPLOYMENT_CHECKLIST.md`
+- `RELEASE_NOTES.md`
+
 ---
 
 ## 🔗 API Endpoints
@@ -198,6 +243,8 @@ go run main.go
 | `/api/context/fi-money` | GET | Yes | Fi MCP data summary |
 | `/api/agents/status` | GET | Yes | Agent operational status |
 | `/api/alerts/` | GET | Yes | Active financial alerts |
+| `/api/alerts/sentiment-check` | POST | Yes | FinGPT-compatible sentiment signal to generate risk/opportunity alert |
+| `/api/integrations/personalized-research` | POST | Yes | Build MCP context-aware external research brief (finance-agent compatible) |
 | `/api/realtime/` | GET | Yes | Real-time market data |
 
 ---
@@ -253,6 +300,50 @@ REDIS_URL=redis://localhost:6379
 | **Testing** | Pytest, Hypothesis (property-based testing) |
 | **CI/CD** | GitHub Actions (lint, test, build) |
 | **Monitoring** | Prometheus, Grafana |
+
+---
+
+## 🔌 AI4Finance Integrations
+
+We added an optional integration layer for selected AI4Finance-Foundation repositories that align with FinAgent's architecture:
+
+- **FinGPT** for financial LLM and sentiment research
+- **FinRAG** for financial retrieval-augmented generation workflows
+- **FinRobot** for agentic finance analysis patterns
+- **FinRL** for portfolio/trading reinforcement learning experiments
+- **finance-agent** (community project) for earnings-call + SEC-filings + news RAG workflows
+
+### Bootstrap external repositories
+
+```bash
+bash scripts/bootstrap_ai4finance.sh
+```
+
+This clones the repositories into:
+
+```text
+external/ai4finance/
+external/community/
+```
+
+### Check integration status in API
+
+After backend startup, call:
+
+```text
+GET /api/integrations/ai4finance
+```
+
+The endpoint returns each integration's repository metadata and whether it is locally available.
+
+### Why `finance-agent` is helpful
+
+The [`kamathhrishi/finance-agent`](https://github.com/kamathhrishi/finance-agent.git) project is relevant for:
+
+- earnings transcript retrieval patterns
+- SEC filing (10-K focused) retrieval workflows
+- multi-source financial RAG from transcripts + filings + news
+- iterative answer improvement patterns for financial Q&A
 
 ---
 

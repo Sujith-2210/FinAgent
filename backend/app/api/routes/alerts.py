@@ -49,6 +49,10 @@ class AlertResponse(BaseModel):
         from_attributes = True
 
 
+class SentimentCheckRequest(BaseModel):
+    text: str = Field(..., min_length=5, description="Market text/news snippet to evaluate")
+
+
 @router.get("/", response_model=dict)
 async def get_alerts(
     limit: int = 50,
@@ -104,3 +108,18 @@ async def trigger_check(current_user: User = Depends(get_current_user)):
         "message": "Proactive check completed",
         **result,
     }
+
+
+@router.post("/sentiment-check")
+async def run_sentiment_check(
+    payload: SentimentCheckRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Run AI4Finance sentiment analysis and optionally generate an alert.
+    """
+    result = await alert_service.run_sentiment_alert_check(
+        user_id=current_user.user_id,
+        text=payload.text,
+    )
+    return result

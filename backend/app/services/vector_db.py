@@ -1,9 +1,6 @@
 
 import os
 from typing import List, Dict, Any, Optional
-import chromadb
-from chromadb.config import Settings
-from chromadb.utils import embedding_functions
 from loguru import logger
 import uuid
 
@@ -32,6 +29,11 @@ class VectorDBService:
         os.makedirs(persistence_path, exist_ok=True)
         
         try:
+            # Lazy import so the module can still be imported in environments
+            # where optional Chroma telemetry dependencies are mismatched.
+            import chromadb
+            from chromadb.utils import embedding_functions
+
             # Initialize Client
             self.client = chromadb.PersistentClient(path=persistence_path)
             

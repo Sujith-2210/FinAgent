@@ -79,13 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [token])
 
-    const completeAuth = async (path: '/api/auth/login' | '/api/auth/register', payload: object) => {
-        const response = await fetch(path, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        })
-
+    const handleAuthResponse = async (response: Response) => {
         if (!response.ok) {
             throw new Error(await parseErrorMessage(response))
         }
@@ -97,15 +91,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const login = async (email: string, password: string) => {
-        await completeAuth('/api/auth/login', { email, password })
+        const params = new URLSearchParams()
+        params.append('username', email)
+        params.append('password', password)
+
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params,
+        })
+        await handleAuthResponse(response)
     }
 
     const register = async (fullName: string, email: string, password: string) => {
-        await completeAuth('/api/auth/register', {
-            email,
-            password,
-            full_name: fullName.trim() || null,
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                password,
+                full_name: fullName.trim() || null,
+            }),
         })
+        await handleAuthResponse(response)
     }
 
     const logout = () => {

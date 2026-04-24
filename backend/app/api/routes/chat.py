@@ -15,6 +15,9 @@ import time
 from app.agents.coordinator import AgentCoordinator
 from app.auth.dependencies import get_current_user
 from app.db.models import User
+from app.services.alert_service import alert_service
+from app.services.finance_research_adapter import finance_research_adapter
+from app.services.user_context_service import UserContextService
 
 router = APIRouter()
 
@@ -80,6 +83,21 @@ def _evict_stale_or_excess_sessions() -> None:
             break
 
 
+def _should_build_external_research_brief(query: str) -> bool:
+    query_lower = query.lower()
+    trigger_keywords = [
+        "earnings",
+        "10-k",
+        "sec filing",
+        "quarterly result",
+        "guidance",
+        "company analysis",
+        "stock research",
+        "market news",
+    ]
+    return any(keyword in query_lower for keyword in trigger_keywords)
+
+
 def get_coordinator(session_id: str, mcp_manager) -> AgentCoordinator:
     """Get or create a coordinator for a session."""
     _evict_stale_or_excess_sessions()
@@ -121,6 +139,42 @@ async def send_message(
             query=request.message,
             session_id=internal_session_id
         )
+
+        # Opportunistically generate sentiment-driven alerts from user market text.
+        # This path is intentionally best-effort and should never fail the chat flow.
+        sentiment_signal = {"checked": False}
+        try:
+            sentiment_result = await alert_service.run_sentiment_alert_check(
+                user_id=current_user.user_id,
+                text=request.message,
+            )
+            sentiment_signal = {"checked": True, **sentiment_result}
+        except Exception as sentiment_error:
+            logger.warning(f"Sentiment alert check skipped due to error: {sentiment_error}")
+            sentiment_signal = {
+                "checked": False,
+                "message": "sentiment_check_failed",
+            }
+
+        metrics_used = dict(result.get("metrics_used", {}))
+        metrics_used["sentiment_signal"] = sentiment_signal
+
+        if _should_build_external_research_brief(request.message):
+            try:
+                context_service = UserContextService(req.app.state.mcp_manager)
+                context = await context_service.get_context_response(user_id=current_user.user_id)
+                research = finance_research_adapter.build_personalized_research_brief(
+                    query=request.message,
+                    context_layers=context.get("layers", {}),
+                )
+                metrics_used["external_research_brief"] = {
+                    "provider": research.get("provider"),
+                    "personalized_focus": research.get("personalized_focus", []),
+                    "is_finance_agent_available": research.get("is_finance_agent_available", False),
+                }
+            except Exception as research_error:
+                logger.warning(f"External research brief skipped due to error: {research_error}")
+                metrics_used["external_research_brief"] = {"status": "skipped"}
         
         # Format response
         return ChatResponse(
@@ -135,7 +189,7 @@ async def send_message(
                 )
                 for c in result.get("agent_contributions", [])
             ],
-            metrics_used=result.get("metrics_used", {}),
+            metrics_used=metrics_used,
             actions=result.get("actions", []),
             timestamp=result.get("timestamp", datetime.utcnow())
         )

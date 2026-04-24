@@ -2,7 +2,8 @@
 
 # Configuration
 export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
-export FI_MCP_SERVER_URL="http://localhost:8080/mcp/sse"
+export FI_MCP_URL="http://localhost:8080/mcp/sse"
+export FI_MCP_SERVER_URL="$FI_MCP_URL"
 export REDIS_URL="redis://localhost:6379"
 
 # Helper function for cleanup

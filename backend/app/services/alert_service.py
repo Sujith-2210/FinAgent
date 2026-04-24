@@ -9,6 +9,7 @@ import uuid
 
 from app.db.models import Alert, ContextSnapshot
 from app.db.database import async_session_maker
+from app.services.ai4finance_sentiment_service import ai4finance_sentiment_service
 
 class AlertService:
     """
@@ -191,6 +192,59 @@ class AlertService:
             )
 
         return {"evaluated_rules": evaluated_rules, "created_alerts": created_alerts}
+
+    async def run_sentiment_alert_check(self, user_id: str, text: str) -> Dict[str, Any]:
+        """
+        Analyze a finance text sentiment and create an alert when signal is strong.
+        """
+        result = ai4finance_sentiment_service.analyze_text(text=text)
+        score = float(result.get("score", 0.0))
+        label = str(result.get("label", "NEUTRAL")).upper()
+
+        if label == "NEUTRAL":
+            return {
+                "created_alert": False,
+                "sentiment": result,
+                "message": "Sentiment is neutral. No alert generated.",
+            }
+
+        severity = "MEDIUM" if abs(score) < 0.6 else "HIGH"
+        is_negative_sentiment = label == "NEGATIVE"
+        title = "Negative Market Sentiment Signal" if is_negative_sentiment else "Positive Market Sentiment Signal"
+        description = (
+            "Market commentary appears risk-heavy. Consider conservative positioning."
+            if is_negative_sentiment
+            else "Market commentary appears constructive. Review opportunity allocation."
+        )
+        alert_type = "RISK" if is_negative_sentiment else "OPPORTUNITY"
+
+        exists = await self._active_alert_exists(
+            user_id=user_id,
+            title=title,
+            triggered_by="ai4finance_fingpt_sentiment",
+        )
+        if exists:
+            return {
+                "created_alert": False,
+                "sentiment": result,
+                "message": "Equivalent sentiment alert already active.",
+            }
+
+        await self.create_alert(
+            title=title,
+            description=description,
+            severity=severity,
+            alert_type=alert_type,
+            triggered_by="ai4finance_fingpt_sentiment",
+            user_id=user_id,
+            context={"sentiment": result},
+        )
+
+        return {
+            "created_alert": True,
+            "sentiment": result,
+            "message": "Sentiment alert created.",
+        }
 
 # Singleton
 alert_service = AlertService()

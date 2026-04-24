@@ -74,7 +74,12 @@ Rules:
             "properties": {
                 "query_topic": {"type": "string"},
                 "query": {"type": "string"},
-                "source": {"type": "string"}
+                "source": {"type": "string"},
+                "personalized_research_brief": {"type": "string"},
+                "mcp_profile": {"type": "object"},
+                "mcp_goal_types": {"type": "array", "items": {"type": "string"}},
+                "mcp_personalized_focus": {"type": "array", "items": {"type": "string"}},
+                "external_research_provider": {"type": "string"},
             },
             "required": ["query_topic"]
         }
@@ -470,6 +475,15 @@ Rules:
         """
         query_topic = input_data.get("query_topic", "") or input_data.get("query", "")
         query_lower = query_topic.lower()
+        personalized_research_brief = input_data.get("personalized_research_brief", "")
+        mcp_focus = input_data.get("mcp_personalized_focus", [])
+        external_provider = input_data.get("external_research_provider", "internal-fallback")
+
+        if personalized_research_brief:
+            self.add_reasoning_step(f"Using MCP-personalized research brief ({external_provider})")
+            if mcp_focus:
+                self.add_reasoning_step(f"Personalized focus areas: {', '.join(mcp_focus[:3])}")
+            query_topic = f"{query_topic}. Personalized focus: {'; '.join(mcp_focus[:3])}" if mcp_focus else query_topic
         
         # NEW: Enforce Indian context for regulatory/tax queries if not specified
         if any(w in query_lower for w in ["tax", "law", "regulation", "rule", "limit", "deduction"]) and "india" not in query_lower:
@@ -501,7 +515,9 @@ Rules:
                          "facts": combined_facts,
                          "source_type": "Internal Documents & Graph (Hybrid)",
                          "sources": [{"title": "Internal KB", "type": "hybrid"}],
-                         "confidence": "HIGH"
+                         "confidence": "HIGH",
+                         "personalization_used": bool(personalized_research_brief),
+                         "external_research_provider": external_provider,
                      }
              except Exception as e:
                  logger.warning(f"GraphRAG search failed: {e}")
@@ -608,7 +624,9 @@ Rules:
                             "facts": facts,
                             "source_type": "Alpha Vantage (Real-time stock data)",
                             "sources": [{"title": f"{company_name} Stock Data", "type": "financial_data", "provider": "Alpha Vantage"}],
-                            "confidence": "HIGH"
+                            "confidence": "HIGH",
+                            "personalization_used": bool(personalized_research_brief),
+                            "external_research_provider": external_provider,
                         }
                         
                         if historical_data:
@@ -658,7 +676,9 @@ Rules:
                         "facts": facts,
                         "source_type": "Firecrawl MCP (Real-time web data)",
                         "sources": [{"title": r.get("title", ""), "url": r.get("url", "")} for r in results[:3]],
-                        "confidence": "HIGH"
+                        "confidence": "HIGH",
+                        "personalization_used": bool(personalized_research_brief),
+                        "external_research_provider": external_provider,
                     }
                     
                     # Cache successful result
@@ -706,5 +726,7 @@ Rules:
             "facts": relevant_facts,
             "source_type": source_type or "Various financial regulations",
             "sources": [],
-            "confidence": confidence
+            "confidence": confidence,
+            "personalization_used": bool(personalized_research_brief),
+            "external_research_provider": external_provider,
         }

@@ -4,7 +4,7 @@ Loads environment variables and provides typed configuration.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from typing import Optional
 from functools import lru_cache
 
@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # Fi MCP Server
     fi_mcp_url: str = Field(
         default="http://localhost:8080/mcp/stream",
-        description="Fi MCP server URL"
+        description="Fi MCP server URL",
+        validation_alias=AliasChoices("FI_MCP_URL", "FI_MCP_SERVER_URL")
     )
     fi_mcp_phone_number: str = Field(
         default="2222222222",
@@ -111,11 +112,11 @@ class Settings(BaseSettings):
     
     # Frontend
     frontend_url: str = Field(
-        default="http://localhost:3000",
+        default="http://localhost:5173",
         description="Frontend URL for CORS"
     )
     cors_origins: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000",
+        default="http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
         description="Comma-separated CORS allowed origins"
     )
 

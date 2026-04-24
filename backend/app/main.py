@@ -16,7 +16,7 @@ except ImportError:
     logger.warning("⚠️ prometheus_client not installed — /metrics endpoint disabled")
 
 from app.config import get_settings
-from app.api.routes import chat, context, dashboard, agents, alerts, feedback, realtime, auth
+from app.api.routes import chat, context, dashboard, agents, alerts, feedback, realtime, auth, integrations
 from app.api.websocket import router as ws_router
 from app.mcp.client import MCPClientManager
 from app.db.database import init_db
@@ -121,6 +121,7 @@ app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(feedback.router, prefix="/api/feedback", tags=["Feedback"])
 app.include_router(realtime.router, prefix="/api/realtime", tags=["Real-Time Data"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(integrations.router, prefix="/api/integrations", tags=["Integrations"])
 
 # Include WebSocket router
 app.include_router(ws_router, tags=["WebSocket"])

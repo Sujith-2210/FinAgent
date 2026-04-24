@@ -39,6 +39,7 @@ from app.services.graph_db import GraphDBService
 from app.services.rag_service import GraphRAGService
 from app.services.sandbox import SandboxService
 from app.services.agent_registry import is_agent_enabled
+from app.services.finance_research_adapter import finance_research_adapter
 from app.privacy.audit_log import audit_logger
 from app.privacy.enhancer import privacy_enhancer
 
@@ -401,6 +402,22 @@ class AgentCoordinator:
             
         elif agent_name == "knowledge":
             input_data["query_topic"] = query
+            context = self.context_manager.get_context()
+            if context:
+                context_layers = {
+                    "user_financial_context": context.user_financial_context,
+                    "transactional_signals": context.transactional_signals,
+                    "user_goals_context": context.user_goals_context,
+                }
+                research_brief = finance_research_adapter.build_personalized_research_brief(
+                    query=query,
+                    context_layers=context_layers,
+                )
+                input_data["personalized_research_brief"] = research_brief.get("personalized_research_brief")
+                input_data["mcp_profile"] = research_brief.get("profile", {})
+                input_data["mcp_goal_types"] = research_brief.get("goal_types", [])
+                input_data["mcp_personalized_focus"] = research_brief.get("personalized_focus", [])
+                input_data["external_research_provider"] = research_brief.get("provider", "internal-fallback")
             
         elif agent_name == "alert":
             # Get signals from finance agent if available
