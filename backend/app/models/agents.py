@@ -38,7 +38,7 @@ class AgentTask(BaseModel):
 class OrchestratorOutput(BaseModel):
     """Output schema for Orchestrator Agent."""
     execution_plan: List[AgentTask] = Field(
-        ..., 
+        ...,
         description="Ordered list of agents to invoke"
     )
     reason: str = Field(..., description="Explanation for the execution plan")

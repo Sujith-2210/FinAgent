@@ -22,17 +22,17 @@ class GraphRAGService:
         3. Combine: Return structured context.
         """
         logger.info(f"Performing hybrid search for: {query}")
-        
+
         # 1. Vector Search
         vector_results = self.vector_db.query(query, n_results=limit)
         docs = [r.get("document", "") for r in vector_results]
-        
+
         # 2. Graph Search (Concept Expansion)
         # Extract potential entities from query (Simple heuristic for V1)
         # In production, use an LLM or NER model here.
         potential_entities = self._extract_query_entities(query)
         graph_facts = []
-        
+
         if potential_entities:
             logger.info(f"query entities: {potential_entities}")
             # Cypher query to find 1-hop relationships for these entities
@@ -49,7 +49,7 @@ class GraphRAGService:
                     graph_facts.append(fact)
             except Exception as e:
                 logger.warning(f"Graph search failed: {e}")
-                
+
         return {
             "documents": docs,
             "graph_context": graph_facts,
@@ -65,16 +65,17 @@ class GraphRAGService:
         entities = []
         # basic cleanup
         clean_words = [w.strip("?,.!") for w in words]
-        
+
         for w in clean_words:
             if w[0].isupper() and len(w) > 1:
                 # specific check for our mock data
                 if w.lower() not in ["what", "how", "who", "tell", "me"]:
                      entities.append(w)
-                     
+
         # Handle multi-word entities hardcoded for prototype (e.g. "Apple Inc.")
-        if "Apple" in entities: entities.append("Apple Inc.")
-        
+        if "Apple" in entities:
+            entities.append("Apple Inc.")
+
         return list(set(entities))
 
     def _format_combined_context(self, docs: List[str], graph_facts: List[str]) -> str:
@@ -82,10 +83,10 @@ class GraphRAGService:
         context = "Relevant Documents:\n"
         for i, doc in enumerate(docs):
             context += f"[{i+1}] {doc}\n"
-            
+
         if graph_facts:
             context += "\nKnowledge Graph Relationships:\n"
             for i, fact in enumerate(graph_facts):
                 context += f"- {fact}\n"
-                
+
         return context

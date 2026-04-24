@@ -234,7 +234,7 @@ class UserContextService:
         expense_band = self._mask_expense(expense_est)
 
         asset_classes = [a.asset_type for a in net_worth.assets] if net_worth else []
-        loan_types = [l.liability_type for l in net_worth.liabilities] if net_worth else []
+        loan_types = [liability.liability_type for liability in net_worth.liabilities] if net_worth else []
         top_expense_categories = self._top_expense_categories(transactions.transactions if transactions else [])
         spending_volatility = self._spending_volatility(transactions.transactions if transactions else [])
         emi_burden = self._derive_emi_burden(debt_intensity)

@@ -4,7 +4,7 @@ Provides real-time web data retrieval for external knowledge.
 
 Uses the Firecrawl MCP server for:
 - Tax regulations and updates
-- Financial news and market data  
+- Financial news and market data
 - Government scheme information
 - RBI/SEBI guidelines
 
@@ -26,34 +26,34 @@ from app.config import get_settings
 class FirecrawlService:
     """
     Service for web data retrieval using Firecrawl MCP.
-    
+
     Provides methods to:
     - Search for financial regulations
     - Scrape specific URLs for content
     - Get real-time market/policy updates
-    
+
     Falls back to built-in knowledge base when Firecrawl unavailable.
     """
-    
+
     def __init__(self, api_key: Optional[str] = None):
         self.settings = get_settings()
         self.api_key = api_key or self.settings.firecrawl_api_key
         self.base_url = "https://api.firecrawl.dev/v0"  # Firecrawl API
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_ttl_seconds = 3600  # 1 hour cache
-    
+
     async def is_available(self) -> bool:
         """Check if Firecrawl API is available."""
         return bool(self.api_key)
-    
+
     async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """
         Search for information using Firecrawl.
-        
+
         Args:
             query: Search query
             max_results: Maximum number of results
-            
+
         Returns:
             List of search results with content
         """
@@ -65,11 +65,11 @@ class FirecrawlService:
             if cache_age < self._cache_ttl_seconds:
                 logger.debug(f"Cache hit for: {query}")
                 return cached["results"]
-        
+
         if not self.api_key:
             logger.info("Firecrawl API key not configured, using fallback")
             return self._get_fallback_results(query)
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -85,40 +85,40 @@ class FirecrawlService:
                     },
                     timeout=30.0
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     results = self._parse_search_results(data)
-                    
+
                     # Cache results
                     self._cache[cache_key] = {
                         "results": results,
                         "cached_at": datetime.utcnow()
                     }
-                    
+
                     logger.info(f"Firecrawl search returned {len(results)} results")
                     return results
                 else:
                     logger.warning(f"Firecrawl search failed: {response.status_code}")
                     return self._get_fallback_results(query)
-                    
+
         except Exception as e:
             logger.error(f"Firecrawl search error: {e}")
             return self._get_fallback_results(query)
-    
+
     async def scrape_url(self, url: str) -> Dict[str, Any]:
         """
         Scrape content from a specific URL.
-        
+
         Args:
             url: URL to scrape
-            
+
         Returns:
             Scraped content with metadata
         """
         if not self.api_key:
             return {"error": "Firecrawl not configured", "content": None}
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -133,7 +133,7 @@ class FirecrawlService:
                     },
                     timeout=30.0
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
                     return {
@@ -144,15 +144,15 @@ class FirecrawlService:
                     }
                 else:
                     return {"error": f"Scrape failed: {response.status_code}", "content": None}
-                    
+
         except Exception as e:
             logger.error(f"Firecrawl scrape error: {e}")
             return {"error": str(e), "content": None}
-    
+
     def _parse_search_results(self, raw_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Parse Firecrawl search response."""
         results = []
-        
+
         data = raw_data.get("data", raw_data.get("web", []))
         if isinstance(data, list):
             for item in data:
@@ -162,9 +162,9 @@ class FirecrawlService:
                     "content": item.get("markdown", item.get("description", "")),
                     "source": "Firecrawl MCP"
                 })
-        
+
         return results
-    
+
     def _get_fallback_results(self, query: str) -> List[Dict[str, Any]]:
         """
         Get fallback results from built-in knowledge base.
@@ -172,7 +172,7 @@ class FirecrawlService:
         """
         query_lower = query.lower()
         results = []
-        
+
         # Built-in knowledge base for common Indian financial queries
         knowledge_base = {
             "tax": [
@@ -244,17 +244,17 @@ class FirecrawlService:
                 }
             ]
         }
-        
+
         # Search through knowledge base
         for category, items in knowledge_base.items():
             if category in query_lower:
                 results.extend(items)
-        
+
         # If no match, return generic financial info
         if not results:
             for _, items in knowledge_base.items():
                 results.extend(items[:1])
-        
+
         return results[:5]
 
 

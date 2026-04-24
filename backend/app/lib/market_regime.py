@@ -10,17 +10,17 @@ from typing import Dict, Any, Optional
 def detect_regime(market_context: Dict[str, Any]) -> str:
     """
     Detects the market regime based on simple heuristics.
-    
+
     Args:
         market_context: Dict with keys 'vix_close' (float) and 'momentum_63d' (float).
-        
+
     Returns:
         str: The detected market regime label.
     """
     # Defaults
     vix = market_context.get('vix_close', 20.0)
     mom63d = market_context.get('momentum_63d', 0.0)
-    
+
     # Heuristic rules (from AgentQuant)
     if vix > 30:
         if mom63d < -0.10:

@@ -17,7 +17,7 @@ import json
 
 class TestCachingProperties:
     """Properties 13-16: Cache behavior and statistics."""
-    
+
     @settings(max_examples=100, deadline=None)
     @given(st.text(min_size=1, max_size=50), st.text(min_size=1, max_size=200))
     def test_property_13_cache_hit_identical_requests(self, key: str, value: str):
@@ -27,24 +27,24 @@ class TestCachingProperties:
         """
         cache = {}
         ttl_expiry = {}
-        
+
         def set_cache(k, v, ttl=300):
             cache[k] = v
             ttl_expiry[k] = time.time() + ttl
             return True
-        
+
         def get_cache(k):
             if k in cache and time.time() < ttl_expiry.get(k, 0):
                 return cache[k]
             return None
-        
+
         # Set then get
         set_cache(key, value, ttl=300)
         result = get_cache(key)
-        
+
         # Property: Identical request within TTL returns same value
         assert result == value
-    
+
     @settings(max_examples=100)
     @given(st.text(min_size=1, max_size=50))
     def test_property_14_cache_refresh_on_expiration(self, key: str):
@@ -54,22 +54,22 @@ class TestCachingProperties:
         """
         cache = {}
         ttl_expiry = {}
-        
+
         def set_cache(k, v, ttl=0.001):
             cache[k] = v
             ttl_expiry[k] = time.time() + ttl
-        
+
         def get_cache(k):
             if k in cache and time.time() < ttl_expiry.get(k, 0):
                 return cache[k]
             return None
-        
+
         set_cache(key, "test_value", ttl=0.001)
         time.sleep(0.01)
-        
+
         # Property: Expired cache returns None
         assert get_cache(key) is None
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=100))
     def test_property_15_lru_eviction_on_memory_limit(self, num_items: int):
@@ -78,24 +78,24 @@ class TestCachingProperties:
         Validates: Requirements 4.4
         """
         from collections import OrderedDict
-        
+
         max_size = 10
         cache = OrderedDict()
-        
+
         def lru_set(key, value):
             if key in cache:
                 cache.move_to_end(key)
             cache[key] = value
             while len(cache) > max_size:
                 cache.popitem(last=False)  # Remove oldest
-        
+
         # Add items
         for i in range(num_items):
             lru_set(f"key_{i}", f"value_{i}")
-        
+
         # Property: Cache size never exceeds max
         assert len(cache) <= max_size
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=0, max_value=100), st.integers(min_value=0, max_value=50))
     def test_property_16_cache_statistics_completeness(self, hits: int, misses: int):
@@ -109,7 +109,7 @@ class TestCachingProperties:
             "total_requests": hits + misses,
             "hit_rate": hits / (hits + misses) if (hits + misses) > 0 else 0
         }
-        
+
         # Property: Statistics should include all required fields
         assert "hits" in stats
         assert "misses" in stats
@@ -124,7 +124,7 @@ class TestCachingProperties:
 
 class TestFinancialAnalyticsProperties:
     """Properties 17-22: Financial calculations and analytics."""
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.floats(min_value=0.01, max_value=1.0), min_size=2, max_size=10))
     def test_property_17_mpt_usage(self, weights: list):
@@ -133,15 +133,15 @@ class TestFinancialAnalyticsProperties:
         Validates: Requirements 5.1
         """
         import numpy as np
-        
+
         # Normalize weights to sum to 1
         total = sum(weights)
         if total > 0:
             weights = [w / total for w in weights]
-        
+
         # Property: Weights should sum to 1 (within tolerance)
         assert abs(sum(weights) - 1.0) < 0.01
-    
+
     @settings(max_examples=100)
     @given(
         st.floats(min_value=-0.5, max_value=0.5),
@@ -154,13 +154,13 @@ class TestFinancialAnalyticsProperties:
         Validates: Requirements 5.2
         """
         assume(std_dev > 0)
-        
+
         sharpe = (returns - rf_rate) / std_dev
-        
+
         # Property: Sharpe ratio is a valid number
         assert not (sharpe != sharpe)  # Not NaN
         assert sharpe < float('inf') and sharpe > float('-inf')
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=100000, max_value=5000000))
     def test_property_19_tax_optimization_coverage(self, income: float):
@@ -169,8 +169,7 @@ class TestFinancialAnalyticsProperties:
         Validates: Requirements 5.3
         """
         # Tax sections that should be covered
-        tax_sections = ["80C", "80D", "80E", "80G", "24", "10(14)"]
-        
+
         # Simulate coverage check
         covered = []
         if income > 0:
@@ -179,10 +178,10 @@ class TestFinancialAnalyticsProperties:
             covered.append("80D")  # Health insurance
         if income > 500000:
             covered.append("24")  # Home loan interest
-        
+
         # Property: At least one section should be covered
         assert len(covered) >= 1
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=10000, max_value=100000))
     def test_property_20_monte_carlo_iterations(self, iterations: int):
@@ -191,11 +190,11 @@ class TestFinancialAnalyticsProperties:
         Validates: Requirements 5.4
         """
         min_required = 10000
-        
+
         # Property: Iterations should meet minimum requirement
         if iterations >= min_required:
             assert iterations >= min_required
-    
+
     @settings(max_examples=100)
     @given(
         st.lists(st.floats(min_value=0.1, max_value=0.5), min_size=3, max_size=5),
@@ -208,20 +207,20 @@ class TestFinancialAnalyticsProperties:
         """
         if len(target) != len(current):
             return
-        
+
         # Calculate drift
         max_drift = 0
         for t, c in zip(target, current):
             drift = abs(t - c)
             max_drift = max(max_drift, drift)
-        
+
         threshold = 0.05  # 5%
         needs_rebalance = max_drift > threshold
-        
+
         # Property: Rebalancing should be triggered when drift > 5%
         if max_drift > threshold:
             assert needs_rebalance
-    
+
     @settings(max_examples=100)
     @given(
         st.floats(min_value=0.01, max_value=0.2),
@@ -238,7 +237,7 @@ class TestFinancialAnalyticsProperties:
         """
         # Net return calculation
         net_return = gross_return - txn_cost - taxes - inflation
-        
+
         # Property: Net return should account for all factors
         expected = gross_return - txn_cost - taxes - inflation
         assert abs(net_return - expected) < 0.0001
@@ -250,7 +249,7 @@ class TestFinancialAnalyticsProperties:
 
 class TestPrivacyProperties:
     """Properties 23-27: Privacy enhancements."""
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0.1, max_value=1.0))
     def test_property_23_differential_privacy_epsilon(self, epsilon: float):
@@ -260,11 +259,11 @@ class TestPrivacyProperties:
         """
         # Property: Epsilon should be in valid range (strong privacy: <= 0.5)
         assert 0 < epsilon <= 1.0
-        
+
         # Strong privacy recommendation
         is_strong_privacy = epsilon <= 0.5
         assert isinstance(is_strong_privacy, bool)
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=100, max_value=1000000))
     def test_property_24_homomorphic_encryption(self, value: float):
@@ -275,10 +274,10 @@ class TestPrivacyProperties:
         # Simulate encryption/decryption
         encrypted = f"ENC:{value}:cipher"
         decrypted = float(encrypted.split(":")[1])
-        
+
         # Property: Decrypted value equals original
         assert abs(value - decrypted) < 0.0001
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.floats(min_value=1000, max_value=100000), min_size=2, max_size=10))
     def test_property_25_smpc_no_data_leakage(self, values: list):
@@ -288,12 +287,12 @@ class TestPrivacyProperties:
         """
         # SMPC aggregation - only aggregate should be revealed
         aggregate = sum(values) / len(values)
-        
+
         # Property: Individual values should not be derivable from aggregate alone
         # (simplified check - aggregate doesn't equal any single value for n > 1)
         if len(values) > 1:
             assert aggregate not in values or values.count(aggregate) == len(values)
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.binary(min_size=10, max_size=50), min_size=2, max_size=5))
     def test_property_26_audit_trail_immutability(self, log_entries: list):
@@ -302,22 +301,22 @@ class TestPrivacyProperties:
         Validates: Requirements 6.4
         """
         import hashlib
-        
+
         chain = []
         prev_hash = "genesis"
-        
+
         for entry in log_entries:
             current_hash = hashlib.sha256(entry + prev_hash.encode()).hexdigest()
             chain.append({"entry": entry, "prev_hash": prev_hash, "hash": current_hash})
             prev_hash = current_hash
-        
+
         # Property: Chain should be immutable (verifiable)
         for i in range(1, len(chain)):
             expected_hash = hashlib.sha256(
                 chain[i]["entry"] + chain[i]["prev_hash"].encode()
             ).hexdigest()
             assert chain[i]["hash"] == expected_hash
-    
+
     @settings(max_examples=100)
     @given(st.text(min_size=5, max_size=20))
     def test_property_27_data_deletion_completeness(self, user_id: str):
@@ -327,12 +326,12 @@ class TestPrivacyProperties:
         """
         # Simulate data storage and deletion
         storage = {"users": {user_id: {"data": "sensitive"}}, "logs": [user_id]}
-        
+
         # Delete user data
         if user_id in storage["users"]:
             del storage["users"][user_id]
         storage["logs"] = [uid for uid in storage["logs"] if uid != user_id]
-        
+
         # Property: User data should be completely removed
         assert user_id not in storage["users"]
         assert user_id not in storage["logs"]
@@ -344,7 +343,7 @@ class TestPrivacyProperties:
 
 class TestEvaluationProperties:
     """Properties 28-30: Evaluation framework."""
-    
+
     @settings(max_examples=100, deadline=None)
     @given(st.lists(st.booleans(), min_size=20, max_size=100))
     def test_property_28_ab_testing_significance(self, outcomes: list):
@@ -355,14 +354,14 @@ class TestEvaluationProperties:
         mid = len(outcomes) // 2
         group_a = [1 if o else 0 for o in outcomes[:mid]]
         group_b = [1 if o else 0 for o in outcomes[mid:]]
-        
+
         a_rate = sum(group_a) / len(group_a) if group_a else 0
         b_rate = sum(group_b) / len(group_b) if group_b else 0
-        
+
         # Property: Rates should be between 0 and 1
         assert 0 <= a_rate <= 1
         assert 0 <= b_rate <= 1
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.floats(min_value=0.1, max_value=5.0), min_size=5, max_size=50))
     def test_property_29_performance_metrics_tracking(self, latencies: list):
@@ -371,15 +370,15 @@ class TestEvaluationProperties:
         Validates: Requirements 7.5
         """
         import statistics
-        
+
         avg_latency = statistics.mean(latencies)
         p95_latency = sorted(latencies)[int(len(latencies) * 0.95)]
-        
+
         # Property: p95 >= average
         assert p95_latency >= avg_latency * 0.5  # Relaxed for randomness
-    
+
     @settings(max_examples=100)
-    @given(st.lists(st.sampled_from(["code", "finance", "knowledge", "orchestrator"]), 
+    @given(st.lists(st.sampled_from(["code", "finance", "knowledge", "orchestrator"]),
                     min_size=1, max_size=5))
     def test_property_30_ablation_study_support(self, disabled_agents: list):
         """
@@ -388,7 +387,7 @@ class TestEvaluationProperties:
         """
         all_agents = ["code", "finance", "knowledge", "orchestrator", "explainability"]
         enabled_agents = [a for a in all_agents if a not in disabled_agents]
-        
+
         # Property: At least one agent should remain enabled
         assert len(enabled_agents) >= 1
 
@@ -399,7 +398,7 @@ class TestEvaluationProperties:
 
 class TestInfrastructureProperties:
     """Properties 31-33: Production infrastructure."""
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.text(min_size=5, max_size=20), min_size=1, max_size=10))
     def test_property_31_prometheus_metrics_exposure(self, metric_names: list):
@@ -413,12 +412,12 @@ class TestInfrastructureProperties:
             "finagent_http_request_duration_seconds",
             "finagent_agent_invocations_total"
         ]
-        
+
         # Property: All required metrics should be defined
         for metric in required_metrics:
             assert isinstance(metric, str)
             assert len(metric) > 0
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0.1, max_value=1.0), st.integers(min_value=1, max_value=10))
     def test_property_32_horizontal_scaling_response_time(self, cpu_util: float, replicas: int):
@@ -427,19 +426,18 @@ class TestInfrastructureProperties:
         Validates: Requirements 8.5
         """
         target_cpu = 0.7  # 70%
-        max_response_time = 3.0  # 3 seconds
-        
+
         # Simulate response time based on load
         base_response = 1.0
         load_factor = cpu_util / target_cpu
         response_time = base_response * load_factor
-        
+
         # With more replicas, response time should decrease
         scaled_response = response_time / (replicas ** 0.5)
-        
+
         # Property: With scaling, response time should be manageable
         assert scaled_response >= 0
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=24))
     def test_property_33_backup_recovery_rpo(self, hours_since_backup: int):
@@ -448,10 +446,10 @@ class TestInfrastructureProperties:
         Validates: Requirements 8.6, 13.1
         """
         rpo_hours = 1  # 1 hour RPO requirement
-        
+
         # Property: Backup should be within RPO
         is_within_rpo = hours_since_backup <= rpo_hours
-        
+
         # If not within RPO, alert should be triggered
         if not is_within_rpo:
             should_alert = True
@@ -464,7 +462,7 @@ class TestInfrastructureProperties:
 
 class TestUXProperties:
     """Properties 34-38: User experience."""
-    
+
     @settings(max_examples=100)
     @given(st.text(min_size=5, max_size=100))
     def test_property_34_voice_interface_roundtrip(self, text: str):
@@ -476,10 +474,10 @@ class TestUXProperties:
         spoken_input = text
         recognized_text = spoken_input  # Ideal case
         spoken_output = recognized_text
-        
+
         # Property: Round-trip should preserve content
         assert spoken_output == text
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=320, max_value=1920))
     def test_property_35_responsive_design_adaptation(self, screen_width: int):
@@ -497,11 +495,11 @@ class TestUXProperties:
         else:
             layout = "desktop"
             columns = 3
-        
+
         # Property: Layout should be determined for any valid width
         assert layout in ["mobile", "tablet", "desktop"]
         assert columns >= 1
-    
+
     @settings(max_examples=100)
     @given(st.dictionaries(st.text(min_size=1, max_size=20), st.booleans(), min_size=1, max_size=5))
     def test_property_36_dashboard_preference_persistence(self, preferences: dict):
@@ -511,13 +509,13 @@ class TestUXProperties:
         """
         # Save preferences
         saved = json.dumps(preferences)
-        
+
         # Load preferences
         loaded = json.loads(saved)
-        
+
         # Property: Preferences should persist correctly
         assert loaded == preferences
-    
+
     @settings(max_examples=100)
     @given(st.sampled_from(["pdf", "excel", "csv"]))
     def test_property_37_export_format_support(self, format_type: str):
@@ -526,10 +524,10 @@ class TestUXProperties:
         Validates: Requirements 9.4
         """
         supported_formats = ["pdf", "excel", "csv"]
-        
+
         # Property: Format should be supported
         assert format_type in supported_formats
-    
+
     @settings(max_examples=100)
     @given(st.sampled_from(["en", "hi", "ta", "te", "mr"]))
     def test_property_38_multi_language_support(self, language: str):
@@ -538,10 +536,9 @@ class TestUXProperties:
         Validates: Requirements 9.5
         """
         # Primary supported languages
-        primary_languages = ["en", "hi"]
         # Extended languages (future)
         all_languages = ["en", "hi", "ta", "te", "mr", "bn"]
-        
+
         # Property: Language should be recognized
         assert language in all_languages
 
@@ -552,7 +549,7 @@ class TestUXProperties:
 
 class TestKnowledgeBaseProperties:
     """Properties 39-44: Knowledge base enhancements."""
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.text(min_size=5, max_size=50), min_size=1, max_size=3))
     def test_property_39_multi_source_aggregation(self, sources: list):
@@ -562,13 +559,13 @@ class TestKnowledgeBaseProperties:
         """
         # Property: At least 3 sources should be queried
         min_sources = 3
-        
+
         # Simulated sources
         all_sources = ["web", "vector_db", "graph_db", "cache"]
-        
+
         # Property: System should support multiple sources
         assert len(all_sources) >= min_sources
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=90))
     def test_property_40_regulatory_data_freshness(self, days_old: int):
@@ -577,13 +574,13 @@ class TestKnowledgeBaseProperties:
         Validates: Requirements 10.2
         """
         max_age_days = 30  # SEBI/RBI announcements should be < 30 days
-        
+
         is_fresh = days_old <= max_age_days
-        
+
         # Property: Stale data should be filtered
         if days_old > max_age_days:
             assert not is_fresh
-    
+
     @settings(max_examples=100)
     @given(st.sampled_from(["AAPL", "HDFCBANK.NS", "RELIANCE.NS", "TCS.NS"]))
     def test_property_41_stock_information_completeness(self, symbol: str):
@@ -592,10 +589,10 @@ class TestKnowledgeBaseProperties:
         Validates: Requirements 10.3
         """
         required_fields = ["price", "volume", "pe_ratio", "market_cap"]
-        
+
         # Property: All required fields should be defined
         assert len(required_fields) >= 4
-    
+
     @settings(max_examples=100)
     @given(st.sampled_from(["mutual fund", "FD", "PPF", "NPS", "ELSS"]))
     def test_property_42_indian_context_examples(self, concept: str):
@@ -603,12 +600,12 @@ class TestKnowledgeBaseProperties:
         Property 42: Financial concept examples with Indian context
         Validates: Requirements 10.4
         """
-        indian_concepts = ["mutual fund", "FD", "PPF", "NPS", "ELSS", 
+        indian_concepts = ["mutual fund", "FD", "PPF", "NPS", "ELSS",
                          "EPF", "Sukanya Samriddhi", "80C", "80D"]
-        
+
         # Property: Concept should have Indian context
         assert concept in indian_concepts
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.text(min_size=10, max_size=100), min_size=2, max_size=4))
     def test_property_43_contradictory_information_handling(self, viewpoints: list):
@@ -618,10 +615,10 @@ class TestKnowledgeBaseProperties:
         """
         # Property: Multiple viewpoints should be presented
         assert len(viewpoints) >= 2
-        
+
         # Property: System should handle any combination of viewpoints
         assert isinstance(viewpoints, list)
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=120))
     def test_property_44_vector_reindexing_latency(self, minutes_elapsed: int):
@@ -630,9 +627,9 @@ class TestKnowledgeBaseProperties:
         Validates: Requirements 10.6
         """
         max_reindex_time = 60  # 1 hour
-        
+
         is_within_sla = minutes_elapsed <= max_reindex_time
-        
+
         # Property: Re-indexing should complete within SLA
         if minutes_elapsed > max_reindex_time:
             assert not is_within_sla
@@ -644,7 +641,7 @@ class TestKnowledgeBaseProperties:
 
 class TestAlertSystemProperties:
     """Properties 45-50: Alert system enhancements."""
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=-1.0, max_value=1.0))
     def test_property_45_anomaly_alert_content(self, anomaly_score: float):
@@ -654,7 +651,7 @@ class TestAlertSystemProperties:
         """
         threshold = 0.5
         is_anomaly = abs(anomaly_score) > threshold
-        
+
         if is_anomaly:
             alert = {
                 "type": "anomaly",
@@ -662,12 +659,12 @@ class TestAlertSystemProperties:
                 "explanation": "Unusual pattern detected",
                 "severity": "HIGH" if abs(anomaly_score) > 0.8 else "MEDIUM"
             }
-            
+
             # Property: Alert should have complete content
             assert "type" in alert
             assert "explanation" in alert
             assert "severity" in alert
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0, max_value=100))
     def test_property_46_goal_milestone_notifications(self, progress: float):
@@ -676,17 +673,17 @@ class TestAlertSystemProperties:
         Validates: Requirements 11.2
         """
         milestones = [25, 50, 75, 100]
-        
+
         notifications = []
         for milestone in milestones:
             if progress >= milestone:
                 notifications.append(milestone)
-        
+
         # Property: Notifications triggered at correct milestones
         for m in milestones:
             if progress >= m:
                 assert m in notifications
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=600))
     def test_property_47_investment_recommendation_timing(self, seconds_delay: int):
@@ -695,13 +692,13 @@ class TestAlertSystemProperties:
         Validates: Requirements 11.3
         """
         max_delay = 300  # 5 minutes
-        
+
         is_timely = seconds_delay <= max_delay
-        
+
         # Property: Recommendations should be timely
         if seconds_delay <= max_delay:
             assert is_timely
-    
+
     @settings(max_examples=100)
     @given(st.sampled_from(["market", "portfolio", "goal", "regulatory"]))
     def test_property_48_risk_warning_mitigation(self, risk_type: str):
@@ -715,11 +712,11 @@ class TestAlertSystemProperties:
             "goal": ["increase contribution", "extend timeline"],
             "regulatory": ["consult advisor", "review compliance"]
         }
-        
+
         # Property: Each risk type should have mitigation suggestions
         assert risk_type in mitigations
         assert len(mitigations[risk_type]) >= 1
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=5), st.booleans())
     def test_property_49_alert_prioritization(self, severity: int, is_urgent: bool):
@@ -729,10 +726,10 @@ class TestAlertSystemProperties:
         """
         # Calculate priority score
         priority = severity * 2 + (3 if is_urgent else 0)
-        
+
         # Property: Higher severity = higher priority
         assert priority >= severity
-    
+
     @settings(max_examples=100)
     @given(st.lists(st.text(min_size=5, max_size=20), min_size=2, max_size=10))
     def test_property_50_related_alert_batching(self, alerts: list):
@@ -744,7 +741,7 @@ class TestAlertSystemProperties:
         batched = {"batch_1": []}
         for alert in alerts:
             batched["batch_1"].append(alert)
-        
+
         # Property: Alerts should be batched to reduce fatigue
         assert len(batched["batch_1"]) == len(alerts)
 
@@ -755,7 +752,7 @@ class TestAlertSystemProperties:
 
 class TestPerformanceMonitoringProperties:
     """Properties 51-55: Performance monitoring."""
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0.1, max_value=10.0), st.booleans())
     def test_property_51_agent_execution_metrics(self, duration: float, success: bool):
@@ -768,12 +765,12 @@ class TestPerformanceMonitoringProperties:
             "success": success,
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Property: Metrics should include required fields
         assert "duration_seconds" in metrics
         assert "success" in metrics
         assert "timestamp" in metrics
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0.0, max_value=1.0))
     def test_property_52_performance_degradation_alerting(self, success_rate: float):
@@ -782,14 +779,14 @@ class TestPerformanceMonitoringProperties:
         Validates: Requirements 12.2
         """
         threshold = 0.7  # 70%
-        
+
         is_degraded = success_rate < threshold
         should_alert = is_degraded
-        
+
         # Property: Alert when success rate < threshold
         if success_rate < threshold:
             assert should_alert
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=1000), st.floats(min_value=0.1, max_value=5.0))
     def test_property_53_monitoring_dashboard_content(self, invocations: int, avg_latency: float):
@@ -802,11 +799,11 @@ class TestPerformanceMonitoringProperties:
             "average_latency": avg_latency,
             "agents": ["code", "finance", "knowledge"]
         }
-        
+
         # Property: Dashboard should show frequency and latency
         assert "invocation_count" in dashboard_data
         assert "average_latency" in dashboard_data
-    
+
     @settings(max_examples=100)
     @given(st.text(min_size=10, max_size=100))
     def test_property_54_error_logging_completeness(self, error_message: str):
@@ -820,11 +817,11 @@ class TestPerformanceMonitoringProperties:
             "context": {"user_id": "test", "query": "test query"},
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Property: Error logs should include stack trace and context
         assert "stack_trace" in error_log
         assert "context" in error_log
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=100, max_value=10000), st.integers(min_value=50, max_value=5000))
     def test_property_55_llm_metrics_measurement(self, input_tokens: int, output_tokens: int):
@@ -837,7 +834,7 @@ class TestPerformanceMonitoringProperties:
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens
         }
-        
+
         # Property: Token metrics should be accurate
         assert llm_metrics["total_tokens"] == input_tokens + output_tokens
 
@@ -848,7 +845,7 @@ class TestPerformanceMonitoringProperties:
 
 class TestRateLimitingProperties:
     """Properties 60-63: Rate limiting and throttling."""
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=0, max_value=600), st.booleans())
     def test_property_60_rate_limit_enforcement(self, request_count: int, authenticated: bool):
@@ -857,13 +854,13 @@ class TestRateLimitingProperties:
         Validates: Requirements 14.1, 14.3, 14.5
         """
         limit = 500 if authenticated else 100
-        
+
         is_allowed = request_count < limit
-        
+
         # Property: Requests under limit should be allowed
         if request_count < limit:
             assert is_allowed
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=60, max_value=300))
     def test_property_61_rate_limit_response_format(self, retry_after: int):
@@ -876,11 +873,11 @@ class TestRateLimitingProperties:
             "headers": {"Retry-After": str(retry_after)},
             "body": {"error": "Too Many Requests"}
         }
-        
+
         # Property: Response should have correct format
         assert response["status_code"] == 429
         assert "Retry-After" in response["headers"]
-    
+
     @settings(max_examples=100)
     @given(st.floats(min_value=0.1, max_value=1.0))
     def test_property_62_adaptive_throttling_under_load(self, system_load: float):
@@ -889,7 +886,7 @@ class TestRateLimitingProperties:
         Validates: Requirements 14.4
         """
         base_limit = 100
-        
+
         # Reduce limit under high load
         if system_load > 0.8:
             adjusted_limit = int(base_limit * 0.5)
@@ -897,11 +894,11 @@ class TestRateLimitingProperties:
             adjusted_limit = int(base_limit * 0.75)
         else:
             adjusted_limit = base_limit
-        
+
         # Property: Limit should decrease under load
         if system_load > 0.8:
             assert adjusted_limit < base_limit
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=1, max_value=10))
     def test_property_63_repeated_violation_blocking(self, violation_count: int):
@@ -910,10 +907,9 @@ class TestRateLimitingProperties:
         Validates: Requirements 14.6
         """
         block_threshold = 3
-        block_duration_minutes = 15
-        
+
         should_block = violation_count >= block_threshold
-        
+
         # Property: Block after repeated violations
         if violation_count >= block_threshold:
             assert should_block

@@ -8,7 +8,7 @@ from app.agents.explainability import ExplainabilityAgent
 
 @pytest.mark.asyncio
 class TestOrchestratorAgent:
-    
+
     async def test_classify_intent_stock(self):
         agent = OrchestratorAgent()
         intent = agent.classify_intent("What is the price of HDFC Bank?")
@@ -28,7 +28,7 @@ class TestOrchestratorAgent:
 
     async def test_extract_entities(self):
         agent = OrchestratorAgent()
-        entities = agent.extract_entities("Invest 50k in SIP")
+        agent.extract_entities("Invest 50k in SIP")
         # Assuming regex logic: 50k -> 50000
         # This checks if logic handles 'k' suffix
         pass # The regex logic in Extract Entities (viewed earlier) handled 'cr'/'lakh', need to verify 'k' support
@@ -120,15 +120,9 @@ class TestOrchestratorAgent:
 
 @pytest.mark.asyncio
 class TestFinanceReasoningAgent:
-    
+
     async def test_calculate_savings_rate(self):
-        agent = FinanceReasoningAgent()
-        context = {
-            "user_financial_context": {
-                "income_summary": "Monthly Income: 100000",
-                "expense_summary": "Monthly Expenses: 40000"
-            }
-        }
+        FinanceReasoningAgent()
         # Assuming _calculate_savings_rate exists or logic is inside process
         # We invoke process with mock inputs
         pass
@@ -154,15 +148,15 @@ class TestFinanceReasoningAgent:
 
 @pytest.mark.asyncio
 class TestKnowledgeAgent:
-    
+
     async def test_freshness_check(self):
         agent = KnowledgeAgent()
-        assert agent._check_freshness("Data from 2025 shows growth") == True
-        assert agent._check_freshness("Data from 2021 indicates decline") == False
-        
+        assert agent._check_freshness("Data from 2025 shows growth")
+        assert not agent._check_freshness("Data from 2021 indicates decline")
+
     async def test_indian_context_injection(self):
         """Test that Indian context is appended for regulatory queries."""
-        agent = KnowledgeAgent()
+        KnowledgeAgent()
         # We can't easily test the injection logic in `process` without mocking `input_data` modification
         # But we can verify the method if we extracted it. Since we modified `process` directly,
         # we'll test via integration test or refactor.

@@ -20,7 +20,7 @@ class FeedbackService:
     async def log_feedback(self, feedback_data: Dict[str, Any]):
         """
         Log feedback to a JSONL file.
-        
+
         Args:
             feedback_data: Dict containing query_id, rating, comment, etc.
         """
@@ -28,7 +28,7 @@ class FeedbackService:
             "timestamp": datetime.utcnow().isoformat(),
             **feedback_data
         }
-        
+
         try:
             with open(self.log_file, "a") as f:
                 f.write(json.dumps(entry) + "\n")
@@ -42,7 +42,7 @@ class FeedbackService:
         entries = []
         if not os.path.exists(self.log_file):
             return []
-            
+
         try:
             with open(self.log_file, "r") as f:
                 for line in f:

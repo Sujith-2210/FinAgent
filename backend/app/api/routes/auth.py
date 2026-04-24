@@ -92,7 +92,7 @@ async def login_user(
     session: AsyncSession = Depends(get_session)
 ):
     """Authenticate a user with email/password and issue an access token.
-    
+
     Accepts OAuth2 form data (username=email, password) for Swagger UI compatibility.
     """
     normalized_email = form_data.username.lower().strip()

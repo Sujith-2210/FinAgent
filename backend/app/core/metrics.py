@@ -124,12 +124,12 @@ ACTIVE_QUERIES = Gauge(
 
 class AgentMetricsTracker:
     """Tracks agent performance metrics."""
-    
+
     def __init__(self):
         self._success_counts = {}
         self._total_counts = {}
         self._confidence_sums = {}
-    
+
     def track_invocation(
         self,
         agent_name: str,
@@ -140,29 +140,29 @@ class AgentMetricsTracker:
         """Track a single agent invocation."""
         # Increment invocation counter
         AGENT_INVOCATIONS.labels(agent_name=agent_name).inc()
-        
+
         # Record duration
         AGENT_DURATION.labels(agent_name=agent_name).observe(duration)
-        
+
         # Track success rate
         if agent_name not in self._total_counts:
             self._total_counts[agent_name] = 0
             self._success_counts[agent_name] = 0
             self._confidence_sums[agent_name] = 0
-        
+
         self._total_counts[agent_name] += 1
         if success:
             self._success_counts[agent_name] += 1
-        
+
         self._confidence_sums[agent_name] += confidence
-        
+
         # Update gauges
         success_rate = self._success_counts[agent_name] / self._total_counts[agent_name]
         avg_confidence = self._confidence_sums[agent_name] / self._total_counts[agent_name]
-        
+
         AGENT_SUCCESS_RATE.labels(agent_name=agent_name).set(success_rate)
         AGENT_CONFIDENCE.labels(agent_name=agent_name).set(avg_confidence)
-    
+
     def track_llm_usage(
         self,
         model: str,
@@ -174,7 +174,7 @@ class AgentMetricsTracker:
         LLM_TOKEN_USAGE.labels(model=model, type='input').inc(input_tokens)
         LLM_TOKEN_USAGE.labels(model=model, type='output').inc(output_tokens)
         LLM_INFERENCE_DURATION.labels(model=model).observe(duration)
-    
+
     def check_performance_degradation(self, agent_name: str) -> bool:
         """
         Check if agent success rate is below threshold (70%).
@@ -182,7 +182,7 @@ class AgentMetricsTracker:
         """
         if agent_name not in self._total_counts:
             return False
-        
+
         success_rate = self._success_counts[agent_name] / self._total_counts[agent_name]
         return success_rate < 0.70
 
@@ -207,7 +207,7 @@ async def metrics():
         'version': '1.0.0',
         'environment': 'development'
     })
-    
+
     return Response(
         generate_latest(),
         media_type=CONTENT_TYPE_LATEST
@@ -224,20 +224,20 @@ def track_agent_execution(agent_name: str):
             start_time = time.time()
             success = True
             confidence = 0.8
-            
+
             try:
                 result = await func(*args, **kwargs)
-                
+
                 # Try to extract confidence from result
                 if isinstance(result, dict):
                     confidence = result.get('confidence', 0.8)
-                
+
                 return result
-                
-            except Exception as e:
+
+            except Exception:
                 success = False
                 raise
-                
+
             finally:
                 duration = time.time() - start_time
                 metrics_tracker.track_invocation(
@@ -246,6 +246,6 @@ def track_agent_execution(agent_name: str):
                     duration=duration,
                     confidence=confidence
                 )
-        
+
         return wrapper
     return decorator

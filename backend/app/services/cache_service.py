@@ -15,12 +15,12 @@ class CacheService:
     Service for managing application-specific caching strategies.
     Wraps the low-level CacheManager.
     """
-    
+
     @staticmethod
     def cached(ttl_seconds: int = 300, key_prefix: str = ""):
         """
         Decorator to cache async function results.
-        
+
         Args:
             ttl_seconds: Time to live in seconds
             key_prefix: Prefix for the cache key
@@ -31,7 +31,7 @@ class CacheService:
                 # Generate cache key
                 # 1. Use provided prefix or function name
                 prefix = key_prefix or func.__name__
-                
+
                 # 2. Serialize args and kwargs to create a unique signature
                 # Note: This is a simple implementation. Complex objects need custom serialization.
                 try:
@@ -43,7 +43,7 @@ class CacheService:
                 except Exception as e:
                     logger.warning(f"Failed to generate cache key for {func.__name__}: {e}")
                     return await func(*args, **kwargs)
-                
+
                 # 3. Try execution
                 try:
                     # Check cache
@@ -51,21 +51,21 @@ class CacheService:
                     if cached_value:
                         logger.debug(f"Cache HIT for {cache_key}")
                         return cached_value
-                    
+
                     # Execute function
                     result = await func(*args, **kwargs)
-                    
+
                     # Cache result
                     if result is not None:
                         await cache_manager.set(cache_key, result, ttl=ttl_seconds)
                         logger.debug(f"Cache MISS - Set {cache_key}")
-                        
+
                     return result
                 except Exception as e:
                     logger.error(f"Caching error in {func.__name__}: {e}")
                     # Fallback to direct execution
                     return await func(*args, **kwargs)
-                    
+
             return wrapper
         return decorator
 
@@ -84,7 +84,7 @@ class CacheService:
         """Retrieve LLM response from cache."""
         key = f"llm:{model}:{hashlib.sha256(prompt.encode()).hexdigest()}"
         return await cache_manager.get(key)
-        
+
     @staticmethod
     async def set_llm_cache(prompt: str, model: str, response: str, ttl: int = 3600):
         """Cache LLM response."""

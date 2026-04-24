@@ -133,44 +133,44 @@ class I18nService:
     Internationalization service for multi-language support.
     Validates: Requirements 9.5
     """
-    
+
     def __init__(self, default_language: str = "en"):
         self.default_language = default_language
         self.current_language = default_language
-    
+
     def set_language(self, language: str) -> bool:
         """Set the current language."""
         if language in TRANSLATIONS:
             self.current_language = language
             return True
         return False
-    
+
     def get_language(self) -> str:
         """Get the current language."""
         return self.current_language
-    
+
     def get_supported_languages(self) -> list:
         """Get list of supported language codes."""
         return list(TRANSLATIONS.keys())
-    
+
     def t(self, key: str, language: Optional[str] = None) -> str:
         """
         Translate a key to the specified or current language.
         Falls back to English if translation not found.
         """
         lang = language or self.current_language
-        
+
         # Try requested language
         if lang in TRANSLATIONS and key in TRANSLATIONS[lang]:
             return TRANSLATIONS[lang][key]
-        
+
         # Fall back to English
         if key in TRANSLATIONS["en"]:
             return TRANSLATIONS["en"][key]
-        
+
         # Return key if no translation found
         return key
-    
+
     def translate_dict(self, data: Dict, keys_to_translate: list, language: Optional[str] = None) -> Dict:
         """
         Translate specific keys in a dictionary.
@@ -180,13 +180,12 @@ class I18nService:
             if key in translated and isinstance(translated[key], str):
                 translated[key] = self.t(translated[key], language)
         return translated
-    
+
     def format_currency(self, amount: float, language: Optional[str] = None) -> str:
         """
         Format currency according to language/locale.
         """
-        lang = language or self.current_language
-        
+
         if amount >= 10000000:  # 1 crore
             return f"₹{amount/10000000:.2f} Cr"
         elif amount >= 100000:  # 1 lakh

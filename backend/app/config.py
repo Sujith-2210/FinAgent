@@ -11,12 +11,12 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
+
     # Server Configuration
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, description="Server port")
     debug: bool = Field(default=False, description="Debug mode")
-    
+
     # Fi MCP Server
     fi_mcp_url: str = Field(
         default="http://localhost:8080/mcp/stream",
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         default="2222222222",
         description="Default phone number for Fi MCP authentication"
     )
-    
+
     # Firecrawl MCP (optional)
     firecrawl_mcp_url: Optional[str] = Field(
         default=None,
@@ -37,14 +37,14 @@ class Settings(BaseSettings):
         default=None,
         description="Firecrawl API key"
     )
-    
-    
+
+
     # Tavily Search API (optional)
     tavily_api_key: Optional[str] = Field(
         default=None,
         description="Tavily API key for web search"
     )
-    
+
     # Alpha Vantage Stock API (optional)
     alpha_vantage_api_key: Optional[str] = Field(
         default=None,
@@ -67,19 +67,19 @@ class Settings(BaseSettings):
         default=0.7,
         description="LLM temperature for generation"
     )
-    
+
     # OpenRouter API
     openrouter_api_key: Optional[str] = Field(
         default=None,
         description="OpenRouter API key for free LLM models"
     )
-    
+
     # DeepSeek API
     deepseek_api_key: Optional[str] = Field(
         default=None,
         description="DeepSeek API key (fallback provider)"
     )
-    
+
     # TradingAgents Integration
     trading_agents_llm_provider: str = Field(
         default="openrouter",
@@ -93,13 +93,13 @@ class Settings(BaseSettings):
         default="qwen/qwen3-coder:free",
         description="Quick thinking model for TradingAgents"
     )
-    
+
     # Database
     database_url: str = Field(
         default="sqlite+aiosqlite:///./finagent.db",
         description="Database connection URL"
     )
-    
+
     # Privacy Settings
     privacy_level: str = Field(
         default="HIGH",
@@ -109,7 +109,7 @@ class Settings(BaseSettings):
         default=True,
         description="Enable audit logging for all operations"
     )
-    
+
     # Frontend
     frontend_url: str = Field(
         default="http://localhost:5173",
@@ -133,7 +133,7 @@ class Settings(BaseSettings):
         default=60 * 24,
         description="JWT access token expiry in minutes"
     )
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

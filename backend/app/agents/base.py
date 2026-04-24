@@ -26,14 +26,14 @@ class AgentResult(BaseModel):
 class BaseAgent(ABC):
     """
     Abstract base class for all agents.
-    
+
     Each agent must:
     - Define its system prompt
     - Declare read/write layer permissions
     - Implement the process method
     - Return structured output
     """
-    
+
     def __init__(self):
         self.name: str = "base_agent"
         self.description: str = "Base agent class"
@@ -42,47 +42,47 @@ class BaseAgent(ABC):
         self.write_layers: Set[str] = set()
         self._reasoning_steps: List[str] = []
         self._context_accessed: List[str] = []
-    
+
     @property
     @abstractmethod
     def input_schema(self) -> Dict[str, Any]:
         """Define the expected input schema."""
         pass
-    
+
     @property
     @abstractmethod
     def output_schema(self) -> Dict[str, Any]:
         """Define the expected output schema."""
         pass
-    
+
     @abstractmethod
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process input and return structured output.
-        
+
         This is the main logic of the agent.
         """
         pass
-    
+
     async def run(self, input_data: Dict[str, Any]) -> AgentResult:
         """
         Execute the agent with input validation and logging.
-        
+
         This is the public interface for invoking an agent.
         """
         start_time = datetime.utcnow()
         self._reasoning_steps = []
         self._context_accessed = []
-        
+
         logger.info(f"Running agent: {self.name}")
-        
+
         try:
             # Process the input
             output = await self.process(input_data)
-            
+
             # Calculate execution time
             execution_time = (datetime.utcnow() - start_time).total_seconds() * 1000
-            
+
             return AgentResult(
                 success=True,
                 output=output,
@@ -91,7 +91,7 @@ class BaseAgent(ABC):
                 confidence=output.get("confidence", "MEDIUM"),
                 execution_time_ms=execution_time
             )
-            
+
         except Exception as e:
             logger.error(f"Agent {self.name} failed: {e}")
             return AgentResult(
@@ -102,22 +102,22 @@ class BaseAgent(ABC):
                 confidence="LOW",
                 execution_time_ms=(datetime.utcnow() - start_time).total_seconds() * 1000
             )
-    
+
     def add_reasoning_step(self, step: str):
         """Add a reasoning step to the trace."""
         self._reasoning_steps.append(step)
         logger.debug(f"[{self.name}] {step}")
-    
+
     def add_structured_reasoning(
-        self, 
-        step_type: str, 
-        input_state: str, 
-        output_state: str, 
+        self,
+        step_type: str,
+        input_state: str,
+        output_state: str,
         confidence: float = 0.8
     ):
         """
         Add structured chain-of-thought reasoning step.
-        
+
         Args:
             step_type: Type of reasoning (e.g., 'INTENT_CLASSIFICATION', 'DATA_ANALYSIS', 'DECISION')
             input_state: Description of input/observations
@@ -133,33 +133,33 @@ class BaseAgent(ABC):
         }
         self._reasoning_steps.append(f"[{step_type}] {input_state} → {output_state} (conf: {confidence:.0%})")
         logger.debug(f"[{self.name}] Structured: {structured_step}")
-    
+
     def record_context_access(self, layer: str):
         """Record that a context layer was accessed."""
         if access_controller.can_read(self.name, layer):
             self._context_accessed.append(layer)
         else:
             logger.warning(f"Agent {self.name} not permitted to access {layer}")
-    
+
     async def invoke_llm(
-        self, 
-        prompt: str, 
+        self,
+        prompt: str,
         include_system_prompt: bool = True
     ) -> Dict[str, Any]:
         """
         Invoke the LLM with the agent's system prompt.
-        
+
         Returns structured JSON output.
         """
         system = self.system_prompt if include_system_prompt else None
-        
+
         return await llm_controller.invoke_agent(
             agent_name=self.name,
             system_prompt=system,
             input_data={"prompt": prompt},
             output_schema=self.output_schema
         )
-    
+
     def get_permissions(self) -> Dict[str, List[str]]:
         """Get the agent's context access permissions."""
         return access_controller.get_agent_permissions(self.name)

@@ -11,16 +11,16 @@ from loguru import logger
 class HomomorphicEncryption:
     """
     Simulates Partially Homomorphic Encryption (PHE) behavior.
-    
+
     In a real production environment, this would use 'python-paillier' or 'concrete-ml'.
     For this prototype/demonstration, we simulate the additive property:
     Enc(a) + Enc(b) = Enc(a + b)
     """
-    
+
     def __init__(self):
         self._public_key = "simulated_pub_key"
         self._private_key = "simulated_priv_key"
-    
+
     def encrypt(self, value: float) -> str:
         """
         Encrypt a float value.
@@ -37,7 +37,7 @@ class HomomorphicEncryption:
         """
         if not ciphertext.startswith("ENC:"):
             raise ValueError("Invalid ciphertext format")
-        
+
         try:
             parts = ciphertext.split(":")
             return float(parts[1])
@@ -52,9 +52,9 @@ class HomomorphicEncryption:
         """
         val1 = self.decrypt(ciphertext1)
         val2 = self.decrypt(ciphertext2)
-        
+
         result_val = val1 + val2
-        
+
         return self.encrypt(result_val)
 
     def add_scalar(self, ciphertext: str, scalar: float) -> str:

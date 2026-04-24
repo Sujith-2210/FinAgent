@@ -45,7 +45,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     logger.info("🚀 Starting FinAgent Backend...")
-    
+
     # Initialize database
     await init_db()
     logger.info("✅ Database initialized")
@@ -56,12 +56,12 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Cache manager connected")
     else:
         logger.warning("⚠️ Cache manager unavailable - rate limiting will fail open")
-    
+
     # Initialize MCP client manager
     mcp_manager = MCPClientManager()
     app.state.mcp_manager = mcp_manager
     logger.info("✅ MCP Client Manager initialized")
-    
+
     # Initialize Real-Time Data Service
     try:
         realtime_service = await get_realtime_service()
@@ -70,9 +70,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ Real-Time Data Service initialization failed (Redis may not be running): {e}")
         app.state.realtime_service = None
-    
+
     yield
-    
+
     # Cleanup
     logger.info("🛑 Shutting down FinAgent Backend...")
     if hasattr(app.state, 'mcp_manager'):

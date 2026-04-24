@@ -71,11 +71,11 @@ class QueryEvaluation:
     Evaluation framework for testing agent responses.
     Implements Requirements 7.1-7.6.
     """
-    
+
     def __init__(self):
         self.test_suite = self._create_test_suite()
         self.results: List[EvaluationResult] = []
-        
+
     def _create_test_suite(self) -> List[QueryTestCase]:
         """
         Create 50-query test suite covering all agent capabilities.
@@ -144,7 +144,7 @@ class QueryEvaluation:
                 expected_agents=["code"],
                 expected_keywords=["Maruti", "prediction"]
             ),
-            
+
             # === ANALYSIS (10 queries) ===
             QueryTestCase(
                 query="Analyze my portfolio performance",
@@ -206,7 +206,7 @@ class QueryEvaluation:
                 expected_agents=["finance"],
                 expected_keywords=["EMI", "income", "percentage"]
             ),
-            
+
             # === PLANNING (10 queries) ===
             QueryTestCase(
                 query="How can I retire with 5 crores?",
@@ -268,7 +268,7 @@ class QueryEvaluation:
                 expected_agents=["finance"],
                 expected_keywords=["life insurance", "need"]
             ),
-            
+
             # === RESEARCH (10 queries) ===
             QueryTestCase(
                 query="What are the best ELSS funds for tax saving?",
@@ -330,7 +330,7 @@ class QueryEvaluation:
                 expected_agents=["knowledge"],
                 expected_keywords=["income tax", "regime"]
             ),
-            
+
             # === PERSONAL (10 queries) ===
             QueryTestCase(
                 query="Can I afford a 50 lakh house with my income?",
@@ -393,20 +393,20 @@ class QueryEvaluation:
                 expected_keywords=["budget", "wedding"]
             ),
         ]
-    
+
     def evaluate(
-        self, 
-        query: str, 
+        self,
+        query: str,
         response: Dict[str, Any]
     ) -> EvaluationResult:
         """
         Evaluate a single query response.
         Validates: Requirement 7.2
-        
+
         Args:
             query: The user query
             response: The agent response containing agents_used, latency, etc.
-            
+
         Returns:
             EvaluationResult with pass/fail status
         """
@@ -416,41 +416,41 @@ class QueryEvaluation:
             if tc.query == query:
                 test_case = tc
                 break
-        
+
         errors = []
         agents_used = response.get("agents_used", [])
         latency_ms = response.get("latency_ms", 0)
         keywords_found = []
         confidence = response.get("confidence", "MEDIUM")
         response_text = response.get("response", "").lower()
-        
+
         # Check keywords in response
         if test_case:
             for keyword in test_case.expected_keywords:
                 if keyword.lower() in response_text:
                     keywords_found.append(keyword)
-        
+
         # Evaluate pass/fail criteria
         passed = True
-        
+
         # Check latency
         max_latency = test_case.max_latency_ms if test_case else 3000
         if latency_ms > max_latency:
             passed = False
             errors.append(f"Latency {latency_ms}ms exceeds max {max_latency}ms")
-        
+
         # Check if expected agents were used
         if test_case:
             for expected in test_case.expected_agents:
                 if expected not in agents_used:
                     # This is a warning, not a failure
                     logger.warning(f"Expected agent '{expected}' not in {agents_used}")
-        
+
         # Check if any keywords were found
         if test_case and len(keywords_found) == 0:
             passed = False
             errors.append(f"No expected keywords found: {test_case.expected_keywords}")
-        
+
         result = EvaluationResult(
             query=query,
             passed=passed,
@@ -460,39 +460,39 @@ class QueryEvaluation:
             confidence=confidence,
             errors=errors
         )
-        
+
         self.results.append(result)
         return result
-    
+
     def run_full_evaluation(
-        self, 
+        self,
         agent_function: callable
     ) -> EvaluationSummary:
         """
         Run evaluation on all 50 test queries.
-        
+
         Args:
             agent_function: Async function that takes query and returns response
-            
+
         Returns:
             EvaluationSummary with pass rate and metrics
         """
         import asyncio
-        
+
         self.results = []
         latencies = []
         agent_counts = {}
         category_results = {}
-        
+
         for test_case in self.test_suite:
             start = time.time()
-            
+
             try:
                 # Run query
                 response = asyncio.run(agent_function(test_case.query))
                 latency_ms = (time.time() - start) * 1000
                 response["latency_ms"] = latency_ms
-                
+
             except Exception as e:
                 response = {
                     "response": f"Error: {str(e)}",
@@ -500,29 +500,29 @@ class QueryEvaluation:
                     "latency_ms": (time.time() - start) * 1000,
                     "confidence": "LOW"
                 }
-            
+
             result = self.evaluate(test_case.query, response)
             latencies.append(result.latency_ms)
-            
+
             # Track agent usage
             for agent in result.agents_used:
                 agent_counts[agent] = agent_counts.get(agent, 0) + 1
-            
+
             # Track category results
             cat = test_case.category.value
             if cat not in category_results:
                 category_results[cat] = []
             category_results[cat].append(result.passed)
-        
+
         # Calculate summary
         passed = sum(1 for r in self.results if r.passed)
         failed = len(self.results) - passed
-        
+
         category_pass_rates = {
             cat: sum(results) / len(results) if results else 0
             for cat, results in category_results.items()
         }
-        
+
         return EvaluationSummary(
             total_queries=len(self.results),
             passed=passed,
@@ -534,7 +534,7 @@ class QueryEvaluation:
             category_pass_rates=category_pass_rates,
             timestamp=datetime.utcnow().isoformat()
         )
-    
+
     def compare_with_benchmark(
         self,
         our_results: EvaluationSummary,
@@ -550,9 +550,9 @@ class QueryEvaluation:
             "ET Money": {"pass_rate": 0.70, "avg_latency_ms": 2200},
             "baseline": {"pass_rate": 0.30, "avg_latency_ms": 4000}
         }
-        
+
         benchmark = benchmarks.get(benchmark_name, benchmarks["baseline"])
-        
+
         return {
             "our_pass_rate": our_results.pass_rate,
             "benchmark_pass_rate": benchmark["pass_rate"],
@@ -561,7 +561,7 @@ class QueryEvaluation:
             "benchmark_avg_latency_ms": benchmark["avg_latency_ms"],
             "latency_improvement": benchmark["avg_latency_ms"] - our_results.avg_latency_ms
         }
-    
+
     def ab_test(
         self,
         group_a_results: List[EvaluationResult],
@@ -573,17 +573,17 @@ class QueryEvaluation:
         """
         a_scores = [1 if r.passed else 0 for r in group_a_results]
         b_scores = [1 if r.passed else 0 for r in group_b_results]
-        
+
         # Calculate pass rates
         a_pass_rate = sum(a_scores) / len(a_scores) if a_scores else 0
         b_pass_rate = sum(b_scores) / len(b_scores) if b_scores else 0
-        
+
         # Statistical significance (t-test)
         if len(a_scores) >= 2 and len(b_scores) >= 2:
             t_stat, p_value = stats.ttest_ind(a_scores, b_scores)
         else:
             t_stat, p_value = 0, 1.0
-        
+
         return {
             "group_a_pass_rate": a_pass_rate,
             "group_b_pass_rate": b_pass_rate,

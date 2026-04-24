@@ -14,19 +14,19 @@ from app.config import get_settings
 class KnowledgeAgent(BaseAgent):
     """
     Knowledge Agent - External fact retrieval.
-    
+
     Responsibilities:
     - Retrieve relevant factual information from web/MCP
     - Summarize rules and regulations
     - Provide source-grounded insights
-    
+
     Rules:
     - Use only MCP-provided documents
     - Do NOT infer personalized advice
     - Do NOT calculate financial outcomes
     - Clearly separate facts from interpretations
     """
-    
+
     def __init__(self, firecrawl_service=None):
         super().__init__()
         self.name = "knowledge"
@@ -37,7 +37,7 @@ class KnowledgeAgent(BaseAgent):
         self._tavily_service = None  # Will be injected by coordinator
         self._rag_service = None
 
-        
+
         self.system_prompt = """You are a Knowledge Agent.
 
 Your task is to:
@@ -51,10 +51,10 @@ Rules:
 - Do NOT calculate financial outcomes
 - Clearly separate facts from interpretations
 - Output must be structured JSON"""
-        
+
         # Fallback knowledge base for common queries
         self._fallback_kb = self._initialize_fallback_kb()
-    
+
     def set_firecrawl_service(self, service):
         """Set the Firecrawl service for web data retrieval."""
         self._firecrawl_service = service
@@ -62,11 +62,11 @@ Rules:
     def set_rag_service(self, service):
         """Set the GraphRAG service."""
         self._rag_service = service
-    
+
     def set_tavily_service(self, service):
         """Set the Tavily service for web search."""
         self._tavily_service = service
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -83,7 +83,7 @@ Rules:
             },
             "required": ["query_topic"]
         }
-    
+
     @property
     def output_schema(self) -> Dict[str, Any]:
         return {
@@ -96,7 +96,7 @@ Rules:
             },
             "required": ["facts"]
         }
-    
+
     def _initialize_fallback_kb(self) -> Dict[str, List[Dict[str, Any]]]:
         """Initialize fallback knowledge base for when Firecrawl is unavailable."""
         return {
@@ -402,29 +402,29 @@ Rules:
                 }
             ]
         }
-    
+
     def _clean_content(self, content: str, max_length: int = 500) -> str:
         """
         Clean and truncate web content to prevent raw HTML dumps.
-        
+
         - Removes markdown links and images
         - Filters out navigation/menu content
         - Truncates to max_length characters
         """
         if not content:
             return ""
-        
+
         import re
-        
+
         # Remove markdown links [text](url) -> text
         content = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', content)
-        
+
         # Remove markdown images ![alt](url)
         content = re.sub(r'!\[[^\]]*\]\([^)]+\)', '', content)
-        
+
         # Remove URLs
         content = re.sub(r'https?://\S+', '', content)
-        
+
         # Remove lines that look like navigation (short lines with lots of pipes or bullets)
         lines = content.split('\n')
         filtered_lines = []
@@ -440,18 +440,18 @@ Rules:
             if line.startswith('#') and len(line) < 50:
                 continue
             filtered_lines.append(line)
-        
+
         content = ' '.join(filtered_lines)
-        
+
         # Collapse multiple spaces
         content = re.sub(r'\s+', ' ', content).strip()
-        
+
         # Truncate to max length
         if len(content) > max_length:
             content = content[:max_length] + "..."
-        
+
         return content
-    
+
     def _check_freshness(self, content: str) -> bool:
         """
         Check if content appears recent (2024-2026).
@@ -459,18 +459,19 @@ Rules:
         """
         import re
         years = re.findall(r'202[0-9]', content)
-        if not years: return True # Assume okay if no date
-        
+        if not years:
+            return True  # Assume okay if no date
+
         # If explicitly mentions old years without new ones, flag it
         latest_year = max([int(y) for y in years])
         if latest_year < 2024:
             return False
         return True
-    
+
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Retrieve relevant knowledge based on query topic.
-        
+
         Uses Firecrawl MCP if available, falls back to built-in knowledge.
         """
         query_topic = input_data.get("query_topic", "") or input_data.get("query", "")
@@ -484,33 +485,33 @@ Rules:
             if mcp_focus:
                 self.add_reasoning_step(f"Personalized focus areas: {', '.join(mcp_focus[:3])}")
             query_topic = f"{query_topic}. Personalized focus: {'; '.join(mcp_focus[:3])}" if mcp_focus else query_topic
-        
+
         # NEW: Enforce Indian context for regulatory/tax queries if not specified
         if any(w in query_lower for w in ["tax", "law", "regulation", "rule", "limit", "deduction"]) and "india" not in query_lower:
             query_topic += " in India"
             self.add_reasoning_step(" appended 'in India' to query for locality context")
-            
+
         self.record_context_access("external_knowledge_context")
         self.add_reasoning_step(f"Searching knowledge base for: {query_topic}")
-        
+
         self.record_context_access("external_knowledge_context")
         self.add_reasoning_step(f"Searching knowledge base for: {query_topic}")
-        
+
         # 1. Try GraphRAG (Hybrid) first
         if self._rag_service:
              try:
                  self.add_reasoning_step("Searching internal Knowledge Base (GraphRAG)")
                  # Query GraphRAG
                  search_result = await self._rag_service.hybrid_search(query_topic)
-                 
+
                  docs = search_result.get("documents", [])
                  graph_facts = search_result.get("graph_context", [])
-                 
+
                  if docs or graph_facts:
                      self.add_reasoning_step(f"Found {len(docs)} docs and {len(graph_facts)} graph relations")
-                     
+
                      combined_facts = docs + [f"Graph Relation: {f}" for f in graph_facts]
-                     
+
                      return {
                          "facts": combined_facts,
                          "source_type": "Internal Documents & Graph (Hybrid)",
@@ -528,12 +529,12 @@ Rules:
         if any(kw in query_lower for kw in stock_keywords):
             try:
                 self.add_reasoning_step("Stock query detected, fetching from Alpha Vantage API")
-                
+
                 # Check cache for stock query
                 from app.core.cache import cache_manager
                 cache_key_av = f"alpha_vantage:{query_lower}"
                 time_series_cache_key = f"alpha_vantage:ts:{query_lower}"
-                
+
                 cached_av = await cache_manager.get(cache_key_av)
                 if cached_av:
                     self.add_reasoning_step("Retrieved stock data from cache")
@@ -543,7 +544,7 @@ Rules:
                 stock_map = {
                     "hdfc": "HDFCBANK.BSE",
                     "hdfc bank": "HDFCBANK.BSE",
-                    "reliance": "RELIANCE.BSE", 
+                    "reliance": "RELIANCE.BSE",
                     "tcs": "TCS.BSE",
                     "infosys": "INFY",
                     "icici": "ICICIBANK.BSE",
@@ -554,7 +555,7 @@ Rules:
                     "amazon": "AMZN",
                     "ibm": "IBM"
                 }
-                
+
                 symbol = None
                 company_key = None
                 for company, ticker in stock_map.items():
@@ -562,19 +563,19 @@ Rules:
                         symbol = ticker
                         company_key = company
                         break
-                
+
                 if symbol:
                     api_key = get_settings().alpha_vantage_api_key
                     if not api_key:
                         self.add_reasoning_step("Alpha Vantage API key is not configured; skipping live stock fetch")
                         raise RuntimeError("ALPHA_VANTAGE_API_KEY not configured")
-                    
+
                     # Fetch GLOBAL_QUOTE (current price)
                     quote_url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={api_key}"
                     async with httpx.AsyncClient(timeout=10.0) as client:
                         quote_response = await client.get(quote_url)
                         quote_data = quote_response.json()
-                    
+
                     # Fetch TIME_SERIES_DAILY (historical data for predictions)
                     # We utilize a separate cache key for historical data as it is heavy
                     timeseries_data = await cache_manager.get(time_series_cache_key)
@@ -584,14 +585,14 @@ Rules:
                             timeseries_response = await client.get(timeseries_url)
                             timeseries_data = timeseries_response.json()
                         await cache_manager.set(time_series_cache_key, timeseries_data, ttl=3600) # Cache for 1 hour
-                    
+
                     current_price = None
                     facts = []
-                    
+
                     if "Global Quote" in quote_data and quote_data["Global Quote"]:
                         quote = quote_data["Global Quote"]
                         current_price = float(quote.get("05. price", 0))
-                        
+
                         if current_price > 0:
                             company_name = stock_map.get(company_key, symbol).replace(".BSE", "").replace(".NS", "")
                             previous_close = float(quote.get("08. previous close", 0))
@@ -599,12 +600,12 @@ Rules:
                             low = float(quote.get("04. low", 0))
                             change_percent = quote.get("10. change percent", "N/A")
                             currency = "₹" if ".BSE" in symbol or ".NS" in symbol else "$"
-                            
+
                             facts.append(f"{company_name} ({symbol}) is currently trading at {currency}{current_price:,.2f}")
                             facts.append(f"Previous close: {currency}{previous_close:,.2f}" if previous_close > 0 else "Previous close: Not available")
                             facts.append(f"Day's range: {currency}{low:,.2f} - {currency}{high:,.2f}" if low > 0 and high > 0 else "Day's range: Not available")
                             facts.append(f"Change: {change_percent}" if change_percent != "N/A" else "Change: Not available")
-                    
+
                     # Process historical time series
                     historical_data = {}
                     if "Time Series (Daily)" in timeseries_data:
@@ -616,10 +617,10 @@ Rules:
                         }
                         facts.append(f"Historical data available: {len(time_series)} days of trading data")
                         self.add_reasoning_step(f"Retrieved {len(time_series)} days of historical data for {symbol}")
-                    
+
                     if facts and current_price and current_price > 0:
                         self.add_reasoning_step(f"Successfully fetched stock data for {symbol}: {currency}{current_price:,.2f}")
-                        
+
                         result = {
                             "facts": facts,
                             "source_type": "Alpha Vantage (Real-time stock data)",
@@ -628,36 +629,36 @@ Rules:
                             "personalization_used": bool(personalized_research_brief),
                             "external_research_provider": external_provider,
                         }
-                        
+
                         if historical_data:
                             result["historical_data"] = historical_data
-                        
+
                         # Cache the successful result
                         await cache_manager.set(cache_key_av, result, ttl=300) # Cache for 5 mins
-                        
+
                         return result
-                    
+
                     logger.warning(f"Alpha Vantage returned no valid data for {symbol}")
-                
+
             except Exception as e:
                 logger.warning(f"Alpha Vantage lookup failed: {e}")
-                self.add_reasoning_step(f"Alpha Vantage failed, falling back to Firecrawl")
+                self.add_reasoning_step("Alpha Vantage failed, falling back to Firecrawl")
 
         # 3. Try Firecrawl MCP for non-stock queries (or if Alpha Vantage failed)
         if self._firecrawl_service:
             try:
                 self.add_reasoning_step("Attempting Firecrawl MCP search")
-                
+
                 from app.core.cache import cache_manager
                 cache_key_fc = f"firecrawl:{query_topic}"
                 cached_fc = await cache_manager.get(cache_key_fc)
-                
+
                 if cached_fc:
                     self.add_reasoning_step("Retrieved Firecrawl results from cache")
                     return cached_fc
-                
+
                 results = await self._firecrawl_service.search(query_topic)
-                
+
                 if results and len(results) > 0:
                     # Clean and truncate content to prevent raw HTML dumps
                     facts = []
@@ -669,9 +670,9 @@ Rules:
                             if not self._check_freshness(clean):
                                 clean += " [WARNING: Content may be outdated (pre-2024 references detected)]"
                             facts.append(clean)
-                    
+
                     self.add_reasoning_step(f"Retrieved {len(facts)} cleaned results from Firecrawl MCP")
-                    
+
                     result = {
                         "facts": facts,
                         "source_type": "Firecrawl MCP (Real-time web data)",
@@ -680,20 +681,20 @@ Rules:
                         "personalization_used": bool(personalized_research_brief),
                         "external_research_provider": external_provider,
                     }
-                    
+
                     # Cache successful result
                     await cache_manager.set(cache_key_fc, result, ttl=3600) # Cache for 1 hour
-                    
+
                     return result
             except Exception as e:
                 logger.warning(f"Firecrawl search failed, using fallback: {e}")
                 self.add_reasoning_step("Firecrawl unavailable, using fallback knowledge")
-        
+
         # Fallback to built-in knowledge base
         self.add_reasoning_step("No exact match, performing broader search")
         relevant_facts = []
         source_type = None
-        
+
         for category, items in self._fallback_kb.items():
             if category in query_lower:
                 for item in items:
@@ -701,7 +702,7 @@ Rules:
                         relevant_facts.extend(item["facts"])
                         source_type = item["source"]
                         self.add_reasoning_step(f"Found relevant facts for {item['topic']}")
-        
+
         # If no specific match, try broader search
         if not relevant_facts:
             for category, items in self._fallback_kb.items():
@@ -711,7 +712,7 @@ Rules:
                     if query_words & topic_words:
                         relevant_facts.extend(item["facts"])
                         source_type = item["source"]
-        
+
         # Determine confidence
         if relevant_facts:
             confidence = "HIGH" if len(relevant_facts) >= 3 else "MEDIUM"
@@ -719,9 +720,9 @@ Rules:
             confidence = "LOW"
             relevant_facts = ["No specific information found for this query"]
             source_type = "Knowledge base"
-        
+
         self.add_reasoning_step(f"Retrieved {len(relevant_facts)} facts with {confidence} confidence")
-        
+
         return {
             "facts": relevant_facts,
             "source_type": source_type or "Various financial regulations",

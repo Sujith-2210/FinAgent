@@ -7,7 +7,7 @@ import uuid
 class VectorDBService:
     """
     Service for managing vector database operations using ChromaDB.
-    
+
     Attributes:
         client: The ChromaDB client.
         collection: The specific collection for FinAgent documents.
@@ -24,10 +24,10 @@ class VectorDBService:
         """
         self.persistence_path = persistence_path
         self.collection_name = collection_name
-        
+
         # Ensure data directory exists
         os.makedirs(persistence_path, exist_ok=True)
-        
+
         try:
             # Lazy import so the module can still be imported in environments
             # where optional Chroma telemetry dependencies are mismatched.
@@ -36,20 +36,20 @@ class VectorDBService:
 
             # Initialize Client
             self.client = chromadb.PersistentClient(path=persistence_path)
-            
+
             # Use a lightweight, local embedding model
             # all-MiniLM-L6-v2 is standard for efficiency/performance balance
             self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
                 model_name="all-MiniLM-L6-v2"
             )
-            
+
             # Get or Create Collection
             self.collection = self.client.get_or_create_collection(
                 name=collection_name,
                 embedding_function=self.embedding_fn
             )
             logger.info(f"VectorDB initialized at {persistence_path} with collection '{collection_name}'")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize VectorDB: {e}")
             raise
@@ -65,7 +65,7 @@ class VectorDBService:
         """
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
-            
+
         try:
             self.collection.add(
                 documents=documents,
@@ -95,7 +95,7 @@ class VectorDBService:
                 n_results=n_results,
                 where=where
             )
-            
+
             # Format results into a cleaner structure
             formatted_results = []
             if results["documents"]:
@@ -106,9 +106,9 @@ class VectorDBService:
                         "id": results["ids"][0][i],
                         "distance": results["distances"][0][i] if results["distances"] else None
                     })
-            
+
             return formatted_results
-            
+
         except Exception as e:
             logger.error(f"Error querying VectorDB: {e}")
             return []

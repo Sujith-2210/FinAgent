@@ -31,7 +31,7 @@ class ContextSnapshot(Base):
     Stores snapshots of MCP context for versioning and audit.
     """
     __tablename__ = "context_snapshots"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     context_id = Column(String(36), nullable=False, index=True)
     user_id = Column(String(36), nullable=True, index=True)
@@ -45,7 +45,7 @@ class ChatMessage(Base):
     Stores chat messages for history and analysis.
     """
     __tablename__ = "chat_messages"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(36), nullable=False, index=True)
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
@@ -60,7 +60,7 @@ class AuditLog(Base):
     Audit log for all context access and agent activity.
     """
     __tablename__ = "audit_logs"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime, default=func.now())
     event_type = Column(String(50), nullable=False)  # 'context_read', 'context_write', 'agent_invoke', etc.
@@ -77,7 +77,7 @@ class Alert(Base):
     Stores generated alerts.
     """
     __tablename__ = "alerts"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     alert_id = Column(String(36), nullable=False, unique=True, index=True)
     user_id = Column(String(36), nullable=True, index=True)
@@ -97,7 +97,7 @@ class UserGoal(Base):
     Stores user-defined financial goals.
     """
     __tablename__ = "user_goals"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     goal_id = Column(String(36), nullable=False, unique=True, index=True)
     user_id = Column(String(36), nullable=True, index=True)

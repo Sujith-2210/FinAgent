@@ -15,7 +15,7 @@ class AlertService:
     """
     Service for managing alerts.
     """
-    
+
     async def get_active_alerts(self, user_id: str, limit: int = 50) -> List[Alert]:
         """Get active alerts for a specific user."""
         async with async_session_maker() as session:

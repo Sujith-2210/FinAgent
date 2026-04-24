@@ -115,25 +115,25 @@ async def send_message(
 ):
     """
     Send a chat message and get AI response with reasoning.
-    
+
     This endpoint orchestrates multiple agents to provide:
     - Personalized financial advice
     - Step-by-step reasoning
     - Privacy-preserved metrics
     """
     logger.info(f"Chat request: {request.message[:50]}...")
-    
+
     try:
         # Get MCP manager from app state
         mcp_manager = req.app.state.mcp_manager
-        
+
         # Public session ID for client; internal session ID is namespaced by user ID.
         public_session_id = request.session_id or str(uuid.uuid4())
         internal_session_id = f"{current_user.user_id}:{public_session_id}"
-        
+
         # Get coordinator for this session
         coordinator = get_coordinator(internal_session_id, mcp_manager)
-        
+
         # Process the query through multi-agent system
         result = await coordinator.process_query(
             query=request.message,
@@ -175,7 +175,7 @@ async def send_message(
             except Exception as research_error:
                 logger.warning(f"External research brief skipped due to error: {research_error}")
                 metrics_used["external_research_brief"] = {"status": "skipped"}
-        
+
         # Format response
         return ChatResponse(
             message=result.get("message", "I couldn't process your request."),
@@ -193,7 +193,7 @@ async def send_message(
             actions=result.get("actions", []),
             timestamp=result.get("timestamp", datetime.utcnow())
         )
-        
+
     except Exception as e:
         logger.error(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

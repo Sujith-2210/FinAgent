@@ -12,7 +12,7 @@ class CodeAgent(BaseAgent):
     Code Generation Agent - Writes and runs Python code.
     Capabilities: Quantitative Analysis, Plotting, Math.
     """
-    
+
     def __init__(self, sandbox: SandboxService = None):
         super().__init__()
         self.name = "code"
@@ -56,9 +56,9 @@ Rules:
    - ⚠️ CRITICAL: DO NOT recreate the index using pd.date_range()! Stock data has gaps (weekends/holidays).
      Use the yfinance data AS-IS: `df = data` or `df = data[['Close']].copy()`.
      NEVER do: `pd.DataFrame(data['Close'].values, index=pd.date_range(...))` - this causes shape mismatches!
-   
+
 5. PREDICTION TECHNIQUES (choose based on context):
-   
+
    A) LINEAR REGRESSION (Simple trend-based forecast):
    - CRITICAL SKLEARN USAGE:
      * Linear regression expects 2D arrays for X (features)
@@ -68,27 +68,27 @@ Rules:
    - Example:
      ```python
      from sklearn.linear_model import LinearRegression
-     
+
      # ... fetch data with dynamic dates ...
-     
+
      # Historical data preparation
      X = np.arange(len(df)).reshape(-1, 1)  # Days as feature
      y = df['Close'].values
-     
+
      # Train model
      model = LinearRegression()
      model.fit(X, y)
-     
+
      # Future predictions (next 30 days)
      future_days = 30
      X_future = np.arange(len(df), len(df) + future_days).reshape(-1, 1)
      y_future = model.predict(X_future)  # CORRECT: only X_future
-     
+
      # Create future dates for plotting
      last_date = df.index[-1]
      future_dates = pd.date_range(start=last_date, periods=future_days+1, freq='D')[1:]
      ```
-   
+
    B) MOVING AVERAGE (Smoothed trend analysis):
    - Use for identifying trends without complex models
    - Example:
@@ -96,44 +96,44 @@ Rules:
      # Calculate moving averages
      df['MA_20'] = df['Close'].rolling(window=20).mean()
      df['MA_50'] = df['Close'].rolling(window=50).mean()
-     
+
      # Simple forecast: extend last MA value
      last_ma = df['MA_20'].iloc[-1]
      future_days = 30
-     
+
      plt.figure(figsize=(12, 6))
      plt.plot(df.index[-100:], df['Close'][-100:], label='Price', color='blue')
      plt.plot(df.index[-100:], df['MA_20'][-100:], label='20-day MA', color='orange')
      plt.axhline(y=last_ma, color='red', linestyle='--', label=f'Projected: {last_ma:.2f}')
      ```
-   
+
    C) ARIMA (Advanced time series):
    - Use for more sophisticated forecasting
    - Requires statsmodels: `from statsmodels.tsa.arima.model import ARIMA`
    - Example:
      ```python
      from statsmodels.tsa.arima.model import ARIMA
-     
+
      # Fit ARIMA model (p=5, d=1, q=0 is a simple starting point)
      model = ARIMA(df['Close'], order=(5, 1, 0))
      fitted = model.fit()
-     
+
      # Forecast
      forecast = fitted.forecast(steps=30)
      future_dates = pd.date_range(start=df.index[-1], periods=31, freq='D')[1:]
-     
+
      # Plot
      plt.figure(figsize=(12, 6))
      plt.plot(df.index, df['Close'], label='Historical', color='blue')
      plt.plot(future_dates, forecast, label='ARIMA Forecast', color='red', linestyle='--')
      ```
-   
+
 6. DATE HANDLING BEST PRACTICES:
    - Always check if data has DatetimeIndex: `isinstance(df.index, pd.DatetimeIndex)`
    - If not, convert: `df.index = pd.to_datetime(df.index)`
    - For future dates, use: `pd.date_range(start=last_date, periods=N+1, freq='D')[1:]`
    - Handle weekends/holidays: yfinance data only has trading days, so predictions should too
-   
+
 7. ERROR HANDLING:
    - Always wrap data fetching in try-except
    - Check for empty dataframes before processing
@@ -189,22 +189,22 @@ Rules:
     def validate_code(self, code: str) -> Tuple[bool, List[str], List[str]]:
         """
         Validate Python code for syntax correctness and security issues.
-        
+
         This method checks:
         1. Syntax validity using ast.parse()
         2. Dangerous imports (os, subprocess, sys, shutil, etc.)
-        
+
         Args:
             code: Python code string to validate
-            
+
         Returns:
             Tuple of (is_valid, errors, warnings):
             - is_valid: True if code passes all validation checks
             - errors: List of error messages (syntax errors, critical issues)
             - warnings: List of warning messages (dangerous imports, security concerns)
-            
+
         Validates: Requirement 3.3 (code syntax validation)
-        
+
         Example:
             >>> is_valid, errors, warnings = agent.validate_code("import os\\nprint('hello')")
             >>> print(is_valid)  # False
@@ -212,7 +212,7 @@ Rules:
         """
         errors = []
         warnings = []
-        
+
         # List of dangerous modules that should not be imported
         # These modules can be used for system manipulation, file operations, etc.
         dangerous_imports = {
@@ -220,7 +220,7 @@ Rules:
             'urllib', 'http', 'ftplib', 'telnetlib', 'pickle', 'shelve',
             'eval', 'exec', 'compile', '__import__', 'open'
         }
-        
+
         # Step 1: Check syntax validity using ast.parse()
         try:
             tree = ast.parse(code)
@@ -230,7 +230,7 @@ Rules:
         except Exception as e:
             errors.append(f"Failed to parse code: {str(e)}")
             return False, errors, warnings
-        
+
         # Step 2: Scan for dangerous imports
         for node in ast.walk(tree):
             # Check for import statements (import x, import x as y)
@@ -239,37 +239,37 @@ Rules:
                     module_name = alias.name.split('.')[0]  # Get base module name
                     if module_name in dangerous_imports:
                         warnings.append(f"Dangerous import detected: {alias.name}")
-            
+
             # Check for from imports (from x import y)
             elif isinstance(node, ast.ImportFrom):
                 if node.module:
                     module_name = node.module.split('.')[0]  # Get base module name
                     if module_name in dangerous_imports:
                         warnings.append(f"Dangerous import detected: {node.module}")
-            
+
             # Check for dangerous function calls (eval, exec, __import__)
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     if node.func.id in ['eval', 'exec', '__import__', 'compile']:
                         warnings.append(f"Dangerous function call detected: {node.func.id}")
-        
+
         # Code is valid if there are no errors
         # Warnings don't make code invalid, but should be reported
         is_valid = len(errors) == 0
-        
+
         return is_valid, errors, warnings
 
     def generate_prophet_code(self, symbol: str, horizon: int = 30) -> Dict[str, Any]:
         """
         Generate Prophet prediction code template.
-        
+
         Args:
             symbol: Stock symbol (e.g., "HDFCBANK.NS", "TSLA")
             horizon: Number of days to predict (default: 30)
-            
+
         Returns:
             Dictionary with 'code' and 'explanation' keys
-            
+
         Validates: Requirements 3.1, 3.6
         """
         code = f"""
@@ -351,16 +351,16 @@ plt.figure(figsize=(14, 7))
 
 # Plot historical data (last 100 days for clarity)
 historical_cutoff = max(0, len(df) - 100)
-plt.plot(df['ds'][historical_cutoff:], df['y'][historical_cutoff:], 
+plt.plot(df['ds'][historical_cutoff:], df['y'][historical_cutoff:],
          label='Historical Price', color='blue', linewidth=2)
 
 # Plot predictions
 future_dates = predictions['ds']
-plt.plot(future_dates, predictions['yhat'], 
+plt.plot(future_dates, predictions['yhat'],
          label='Prophet Prediction', color='red', linewidth=2, linestyle='--')
 
 # Plot confidence intervals
-plt.fill_between(future_dates, 
+plt.fill_between(future_dates,
                  predictions['yhat_lower'],
                  predictions['yhat_upper'],
                  alpha=0.3, color='red', label='95% Confidence Interval')
@@ -389,7 +389,7 @@ change = ((predictions['yhat'].iloc[-1] - df['y'].iloc[-1]) / df['y'].iloc[-1]) 
 print(f"Expected Change: {{change:+.2f}}%")
 print(f"{'='*60}")
 """
-        
+
         explanation = f"""
 This code implements Facebook Prophet for stock price prediction.
 
@@ -411,7 +411,7 @@ Prophet advantages:
 The confidence intervals represent the uncertainty in the forecast based on
 historical volatility and trend changes.
 """
-        
+
         return {
             "code": code.strip(),
             "explanation": explanation.strip(),
@@ -542,14 +542,14 @@ Key points:
     def generate_lstm_code(self, symbol: str, horizon: int = 30) -> Dict[str, Any]:
         """
         Generate LSTM prediction code template.
-        
+
         Args:
             symbol: Stock symbol (e.g., "HDFCBANK.NS", "TSLA")
             horizon: Number of days to predict (default: 30)
-            
+
         Returns:
             Dictionary with 'code' and 'explanation' keys
-            
+
         Validates: Requirements 3.1, 3.6
         """
         code = f"""
@@ -670,15 +670,15 @@ print(f"  R² Score: {{r2_score:.4f}}")
 plt.figure(figsize=(14, 7))
 
 # Plot historical data (last 100 days for clarity)
-plt.plot(stock.index[-100:], stock['Close'][-100:], 
+plt.plot(stock.index[-100:], stock['Close'][-100:],
          label='Historical Price', color='blue', linewidth=2)
 
 # Plot predictions
-plt.plot(future_dates, predictions, 
+plt.plot(future_dates, predictions,
          label='LSTM Prediction', color='red', linewidth=2, linestyle='--')
 
 # Plot confidence intervals
-plt.fill_between(future_dates, 
+plt.fill_between(future_dates,
                  confidence_lower.flatten(),
                  confidence_upper.flatten(),
                  alpha=0.3, color='red', label='95% Confidence Interval')
@@ -705,7 +705,7 @@ change = ((predictions[-1][0] - stock['Close'].iloc[-1]) / stock['Close'].iloc[-
 print(f"Expected Change: {{change:+.2f}}%")
 print(f"{'='*60}")
 """
-        
+
         explanation = f"""
 This code implements an LSTM (Long Short-Term Memory) neural network for stock price prediction.
 
@@ -724,7 +724,7 @@ The LSTM model is more sophisticated than linear regression as it can:
 
 Confidence intervals provide uncertainty estimates for the predictions.
 """
-        
+
         return {
             "code": code.strip(),
             "explanation": explanation.strip(),
@@ -741,7 +741,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
             },
             "required": ["query_topic"]
         }
-        
+
     @property
     def output_schema(self) -> Dict[str, Any]:
         return {
@@ -755,7 +755,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
     def normalize_stock_symbol(self, symbol: str) -> str:
         """
         Normalize stock symbol for Yahoo Finance.
-        
+
         Rules:
         - Indian stocks (NSE): Add .NS if missing
         - US stocks: Keep as is
@@ -763,31 +763,31 @@ Confidence intervals provide uncertainty estimates for the predictions.
         """
         if not symbol:
             return ""
-            
+
         symbol = symbol.upper().strip()
-        
+
         # Indian Stocks (Common identifiers)
         indian_stocks = {
-            "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", 
+            "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN",
             "BHARTIARTL", "ITC", "KOTAKBANK", "LICI", "HINDUNILVR",
             "TATASTEEL", "TATAMOTORS", "MARUTI", "SUNPHARMA", "NTPC",
             "TITAN", "BAJFINANCE", "ONGC", "ADANIENT", "ADANIPORTS"
         }
-        
+
         # Crypto
         crypto = {"BTC", "ETH", "SOL", "DOGE", "XRP", "ADA"}
-        
+
         if symbol in crypto:
              return f"{symbol}-USD"
-             
+
         # Check if it's likely an Indian stock
         if symbol in indian_stocks:
             return f"{symbol}.NS"
-            
+
         # Already has suffix
         if symbol.endswith(".NS") or symbol.endswith(".BO"):
             return symbol
-            
+
         # Default: Return as is (US stocks usually)
         return symbol
 
@@ -809,21 +809,21 @@ Confidence intervals provide uncertainty estimates for the predictions.
         """Process a code generation request."""
         query = input_data.get("query_topic", "")
         raw_symbol = input_data.get("stock_symbol")
-        
+
         # Normalize symbol
         stock_symbol = self.normalize_stock_symbol(raw_symbol) if raw_symbol else None
-        
+
         self.add_reasoning_step(f"Generating code for: {query}")
         if stock_symbol:
             self.add_reasoning_step(f"Using normalized stock symbol: {stock_symbol}")
-        
+
         # 1. Generate Code (LLM Call)
         try:
             # Build prompt with stock symbol if available
             prompt = f"Write python code to: {query}"
             if stock_symbol:
                 prompt += f"\n\nIMPORTANT: Use the exact stock ticker '{stock_symbol}' with yfinance."
-                
+
                 # Additional context for LLM based on symbol type
                 if stock_symbol.endswith('.NS'):
                      prompt += " This is an Indian NSE stock."
@@ -831,18 +831,18 @@ Confidence intervals provide uncertainty estimates for the predictions.
                      prompt += " This is a Cryptocurrency."
                 else:
                      prompt += " This is likely a US stock."
-            
+
             # CRITICAL: Detect if query asks for prediction/forecast
             prediction_keywords = ['predict', 'forecast', 'future', 'next', 'upcoming', 'projection']
             is_prediction_query = any(keyword in query.lower() for keyword in prediction_keywords)
-            
+
             # Use advanced models for prediction queries (Requirement 3.1, 3.6)
             if is_prediction_query and stock_symbol:
                 # Extract horizon from query if specified
                 import re
                 horizon_match = re.search(r'(\d+)\s*days?', query.lower())
                 horizon = int(horizon_match.group(1)) if horizon_match else 30
-                
+
                 # Determine model based on query keywords.
                 # Default to linear regression for reliability in constrained sandboxes.
                 model_type = "LINEAR_REGRESSION"
@@ -850,13 +850,13 @@ Confidence intervals provide uncertainty estimates for the predictions.
                     model_type = "PROPHET"
                 elif 'lstm' in query.lower():
                     model_type = "LSTM"
-                
+
                 self.add_reasoning_step(f"Using {model_type} model for prediction (advanced model)")
-                
+
                 # Check cache for existing prediction
                 from app.core.cache import cache_manager
                 cache_key = f"prediction:{stock_symbol}:{horizon}:{model_type}"
-                
+
                 cached_result = await cache_manager.get(cache_key)
                 if cached_result:
                     cached_success = bool(cached_result.get("success"))
@@ -866,7 +866,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
                         return cached_result
                     self.add_reasoning_step("Ignoring stale cached prediction without chart artifacts")
                     await cache_manager.delete(cache_key)
-                
+
                 # Generate code using selected template
                 if model_type == "PROPHET":
                     model_result = self.generate_prophet_code(stock_symbol, horizon)
@@ -874,18 +874,18 @@ Confidence intervals provide uncertainty estimates for the predictions.
                     model_result = self.generate_lstm_code(stock_symbol, horizon)
                 else:
                     model_result = self.generate_linear_regression_code(stock_symbol, horizon)
-                
+
                 code = model_result["code"]
                 explanation = model_result["explanation"]
-                
+
                 # Execute the code directly
                 if self._sandbox:
                     exec_result = self._sandbox.execute_code(code)
-                    
+
                     output = exec_result.get("stdout", "")
                     error = self._derive_execution_error(exec_result)
                     images = exec_result.get("images", [])
-                    
+
                     if exec_result["success"]:
                         if not images:
                             logger.warning(f"{model_type} execution completed but produced no chart artifacts")
@@ -902,7 +902,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
 
                         self.add_reasoning_step(f"{model_type} prediction executed successfully")
                         logger.info(f"{model_type} prediction generated {len(images)} chart(s)")
-                        
+
                         result = {
                             "code": code,
                             "output": output,
@@ -911,11 +911,11 @@ Confidence intervals provide uncertainty estimates for the predictions.
                             "images": images,
                             "model_type": model_type
                         }
-                        
+
                         # Cache successful predictions with chart artifacts for 1 hour
                         await cache_manager.set(cache_key, result, ttl=3600)
                         self.add_reasoning_step("Cached prediction result for faster future queries")
-                        
+
                         return result
                     else:
                         logger.warning(f"{model_type} execution failed: {error[:200]}")
@@ -998,7 +998,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
                         }
                 else:
                     return {"result": "Sandbox service not available."}
-            
+
             # For non-prediction queries or when stock_symbol is not available, use LLM
             # ENHANCEMENT: Add explicit visualization instructions for analysis queries
             analysis_viz_keywords = ['volatility', 'volatile', 'std', 'variance', 'correlation',
@@ -1006,7 +1006,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
                                      'growth', 'decline', 'chart', 'plot', 'graph', 'visualize',
                                      'show', 'allocation', 'distribution', 'portfolio']
             is_analysis_query = any(keyword in query.lower() for keyword in analysis_viz_keywords)
-            
+
             if is_analysis_query and not is_prediction_query:
                 prompt += "\n\nIMPORTANT ANALYSIS & VISUALIZATION REQUIREMENTS:"
                 prompt += "\n- ALWAYS generate a matplotlib chart (bar chart, line chart, pie chart, etc.)"
@@ -1020,10 +1020,10 @@ Confidence intervals provide uncertainty estimates for the predictions.
                 prompt += "\n- Always call plt.savefig('analysis_chart.png', dpi=100, bbox_inches='tight')"
                 prompt += "\n- Print numerical results to stdout"
                 prompt += "\n- Use professional styling: grid, colors, proper titles and labels"
-            
+
             if is_prediction_query:
                 stock_ticker = stock_symbol if stock_symbol else "TICKER"
-                prompt += f"\n\n⚠️ PREDICTION REQUIRED - Copy this COMPLETE template and adapt:"
+                prompt += "\n\n⚠️ PREDICTION REQUIRED - Copy this COMPLETE template and adapt:"
                 prompt += "\n```python"
                 prompt += "\nimport yfinance as yf"
                 prompt += "\nimport pandas as pd"
@@ -1063,14 +1063,14 @@ Confidence intervals provide uncertainty estimates for the predictions.
                 prompt += "\nplt.grid(True)"
                 prompt += "\nplt.show()"
                 prompt += "\n```"
-            
+
             llm_response = await self.invoke_llm(prompt)
             logger.info(f"DEBUG LLM RESPONSE TYPE: {type(llm_response)}")
             logger.info(f"DEBUG LLM RESPONSE CONTENT: {llm_response}")
-            
+
             code = ""
             explanation = ""
-            
+
             # Handle dictionary response (JSON)
             if isinstance(llm_response, dict):
                 # Check for nested 'properties' key (common local LLM hallucination based on schema)
@@ -1097,13 +1097,13 @@ Confidence intervals provide uncertainty estimates for the predictions.
                         # Assume the whole response is code if it looks like python
                         if "import " in llm_response or "print(" in llm_response:
                             code = llm_response.strip()
-                            
+
                 # Extract explanation (everything else)
                 explanation = re.sub(r"```.*?```", "", llm_response, flags=re.DOTALL).strip()
-            
+
             if not code:
                 return {"result": "Failed to generate code."}
-                
+
             # Sanitize code: remove any lines that look like "EXPLANATION: ..." which might cause SyntaxError
             sanitized_lines = []
             for line in code.split('\n'):
@@ -1111,17 +1111,17 @@ Confidence intervals provide uncertainty estimates for the predictions.
                     continue
                 sanitized_lines.append(line)
             code = '\n'.join(sanitized_lines)
-                
+
             self.add_reasoning_step("Code generated. Executing in Sandbox...")
-            
+
             # 2. Execute Code
             if self._sandbox:
                 exec_result = self._sandbox.execute_code(code)
-                
+
                 output = exec_result.get("stdout", "")
                 error = self._derive_execution_error(exec_result)
                 images = exec_result.get("images", [])
-                
+
                 if exec_result["success"]:
                     self.add_reasoning_step("Execution successful")
                     if images:
@@ -1146,7 +1146,7 @@ Confidence intervals provide uncertainty estimates for the predictions.
                     }
             else:
                  return {"result": "Sandbox service not available."}
-                 
+
         except Exception as e:
             self.add_reasoning_step(f"Agent failed: {e}")
             return {"error": str(e)}

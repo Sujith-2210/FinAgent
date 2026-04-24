@@ -13,27 +13,27 @@ from app.agents.base import BaseAgent
 class ExplainabilityAgent(BaseAgent):
     """
     Explainability Agent - The human translator.
-    
+
     Responsibilities:
     - Convert structured agent outputs to human-readable explanations
     - Preserve reasoning transparency
     - Avoid technical jargon
     - Maintain privacy masking
-    
+
     Rules:
     - Do NOT add new insights
     - Do NOT introduce new data
     - Keep explanations concise and clear
     - Always reference reasoning steps
     """
-    
+
     def __init__(self):
         super().__init__()
         self.name = "explainability"
         self.description = "Converts agent outputs to human-readable explanations"
         self.read_layers = {"agent_working_memory", "explainability_context"}
         self.write_layers = {"explainability_context"}
-        
+
         self.system_prompt = """You are an Explainability Agent.
 
 Your task is to:
@@ -48,7 +48,7 @@ Rules:
 - Keep explanations concise and clear
 - Always reference reasoning steps
 - Output must be structured JSON"""
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -61,7 +61,7 @@ Rules:
                 "confidence_level": {"type": "string"}
             }
         }
-    
+
     @property
     def output_schema(self) -> Dict[str, Any]:
         return {
@@ -75,16 +75,16 @@ Rules:
             },
             "required": ["summary", "key_reasons"]
         }
-    
+
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process agent outputs and convert to user-friendly explanation.
         """
         query = input_data.get("user_query", "")
         agent_outputs = input_data.get("agent_outputs", {})
-        
+
         self.add_reasoning_step(f"Processing query: {query}")
-        
+
         # Extract data from various agents
         finance_output = agent_outputs.get("finance_reasoning", {})
         knowledge_output = agent_outputs.get("knowledge", {})
@@ -92,19 +92,19 @@ Rules:
         alert_output = agent_outputs.get("alert", {})
         trading_output = agent_outputs.get("trading_analysis", {})
         execution_trace = agent_outputs.get("execution_trace", [])
-        
+
         # Raw financial context from coordinator (for deeply personalized responses)
         user_financial_ctx = input_data.get("user_financial_context", {})
-        
+
         metrics = finance_output.get("metrics", {})
         signals = finance_output.get("signals_detected", [])
         reasoning_steps = finance_output.get("intermediate_reasoning", [])
         facts = knowledge_output.get("facts", [])
-        
+
         # NEW: Extract user-specific data from finance agent + raw context
         user_age = finance_output.get("user_age")
         monthly_income = (
-            finance_output.get("monthly_income") 
+            finance_output.get("monthly_income")
             or user_financial_ctx.get("monthly_income")
         )
         monthly_expenses = (
@@ -128,7 +128,7 @@ Rules:
         specific_calculations = finance_output.get("specific_calculations", {})
         target_amount = finance_output.get("target_amount")
         specific_goal = finance_output.get("specific_goal")
-        
+
         if user_age:
             self.add_reasoning_step(f"User age available: {user_age} years")
         if monthly_income:
@@ -140,7 +140,7 @@ Rules:
         actions = self._extract_image_actions(code_output.get("images", []))
         if actions:
             logger.info(f"Including {len(actions)} chart(s) in response")
-        
+
         # DEBUG: Check what facts and reasoning_steps contain
         logger.info(f"EXPLAINABILITY INPUT DEBUG: facts={facts[:2] if facts else 'EMPTY'}, reasoning_steps={reasoning_steps[:2] if reasoning_steps else 'EMPTY'}")
 
@@ -149,7 +149,7 @@ Rules:
         is_house_query = any(kw in query_lower for kw in house_keywords) or specific_goal == "HOME_PURCHASE"
         is_technical_output_query = self._is_technical_output_query(query_lower)
         is_stock_trading_query = self._is_stock_trading_query(query_lower)
-        
+
         # Handle stock trading analysis results from TradingAgents
         if is_stock_trading_query and trading_output and trading_output.get("success"):
             self.add_reasoning_step("Using TradingAgents pipeline response for stock trading query")
@@ -273,14 +273,14 @@ Rules:
                 execution_trace=execution_trace,
                 actions=actions,
             )
-        
+
         # Prepare prompt for LLM
         # IMPORTANT: _build_prompt signature is (query, metrics, signals, reasoning, facts, ...)
         # NOT (query, metrics, signals, facts, reasoning, ...) - reasoning comes before facts!
         prompt = self._build_prompt(
-            query, 
-            metrics, 
-            signals, 
+            query,
+            metrics,
+            signals,
             reasoning_steps,
             facts,
             code_output,
@@ -295,15 +295,15 @@ Rules:
             asset_classes=asset_classes,
         )
         self.add_reasoning_step("Built prompt for LLM explanation generation")
-        
+
         # DEBUG: Log the actual prompt being sent
         logger.info(f"EXPLAINABILITY PROMPT DEBUG: First 500 chars of prompt: {prompt[:500]}")
-        
+
         # Call the LLM for natural language generation
         try:
             llm_response = await self.invoke_llm(prompt)
             self.add_reasoning_step("Generated explanation using LLM")
-            
+
             # If LLM returns valid structured response, use it BUT ALWAYS ADD ACTIONS
             if isinstance(llm_response, dict) and "summary" in llm_response:
                 return {
@@ -315,24 +315,24 @@ Rules:
                 }
         except Exception as e:
             logger.warning(f"LLM call failed, using fallback: {e}")
-            self.add_reasoning_step(f"LLM call failed, using structured fallback")
-        
+            self.add_reasoning_step("LLM call failed, using structured fallback")
+
         # Fallback: Build response from structured data if LLM fails
         summary = self._build_summary(query, metrics, signals, facts)
         self.add_reasoning_step("Generated summary from financial metrics and signals")
-        
+
         key_reasons = self._build_key_reasons(signals, reasoning_steps)
         self.add_reasoning_step("Extracted key reasons from agent reasoning")
-        
+
         assumptions = self._build_assumptions(metrics)
-        
+
         if facts and facts[0] != "No specific information found for this query":
             key_reasons.append(f"Relevant regulation: {facts[0]}")
             self.add_reasoning_step("Integrated external knowledge into explanation")
-        
+
         # Calculate confidence based on data quality
         confidence = self._calculate_confidence("MEDIUM", len(signals), len(facts))
-        
+
         return {
             "summary": summary,
             "key_reasons": key_reasons,
@@ -397,7 +397,7 @@ Rules:
             "confidence": confidence,
             "actions": actions,
         }
-    
+
     def _is_income_shock_rebalance_query(self, query_lower: str) -> bool:
         """Detect personal income-drop stress test queries that require deterministic rebalancing output."""
         personal_terms = [" my ", " me ", " i ", "mine", "myself", "my context"]
@@ -912,7 +912,7 @@ Rules:
     ) -> Dict[str, Any]:
         """
         Build a user-friendly response from TradingAgents pipeline output.
-        
+
         Synthesizes:
         - Multi-analyst reports (fundamentals, market, social, news)
         - Bull/Bear debate arguments
@@ -923,21 +923,21 @@ Rules:
         recommendation = trading_output.get("recommendation", "HOLD")
         confidence = trading_output.get("confidence", "MEDIUM")
         reasoning = trading_output.get("reasoning", "")
-        
+
         # Analyst reports
         reports = trading_output.get("analyst_reports", {})
         debate = trading_output.get("debate", {})
         trader = trading_output.get("trader_decision", {})
         risk = trading_output.get("risk_assessment", {})
-        
+
         # Build summary
         summary_parts = [
             f"**{ticker} Trading Analysis — Recommendation: {recommendation}** (Confidence: {confidence})",
         ]
-        
+
         if reasoning:
             summary_parts.append(f"\n{reasoning}")
-        
+
         # Add analyst highlights
         if reports:
             summary_parts.append("\n**Analyst Insights:**")
@@ -949,7 +949,7 @@ Rules:
                         highlight += "..."
                     label = report_name.replace("_", " ").title()
                     summary_parts.append(f"• {label}: {highlight}")
-        
+
         # Add debate highlights
         if debate.get("bull_arguments") or debate.get("bear_arguments"):
             summary_parts.append("\n**Bull vs Bear Debate:**")
@@ -959,9 +959,9 @@ Rules:
             if debate.get("bear_arguments"):
                 bear_highlight = str(debate["bear_arguments"])[:200]
                 summary_parts.append(f"🐻 Bear Case: {bear_highlight}")
-        
+
         summary = "\n".join(summary_parts)
-        
+
         # Key reasons
         key_reasons = []
         if isinstance(trader, dict):
@@ -969,21 +969,21 @@ Rules:
                 key_reasons.append(f"Trader recommendation: {trader['action']}")
             if trader.get("reasoning"):
                 key_reasons.append(f"Rationale: {trader['reasoning'][:200]}")
-        
+
         if isinstance(risk, dict) and risk.get("risk_debate_state"):
             risk_state = risk["risk_debate_state"]
             if isinstance(risk_state, dict):
                 key_reasons.append(f"Risk assessment conducted with {risk_state.get('count', 0)} debate round(s)")
-        
+
         key_reasons.append(f"Analysis used {len([r for r in reports.values() if r])} analyst report(s)")
-        
+
         assumptions = [
             "Analysis based on publicly available market data",
             f"Analysis date: {trading_output.get('analysis_date', 'current')}",
             "Past performance is not indicative of future results",
             "This is not financial advice; consult a certified advisor before trading",
         ]
-        
+
         return {
             "summary": summary,
             "key_reasons": key_reasons,
@@ -1099,8 +1099,8 @@ Rules:
             "actions": [],
         }
 
-    
-    def _build_prompt(self, query: str, metrics: Dict[str, Any], signals: List[str], 
+
+    def _build_prompt(self, query: str, metrics: Dict[str, Any], signals: List[str],
                           reasoning: List[str], facts: List[str], code_output: Dict[str, Any],
                           user_age: Optional[int] = None,
                           monthly_income: Optional[float] = None,
@@ -1125,48 +1125,48 @@ Rules:
             output_text = code_output.get("output", "")
             explanation = code_output.get("explanation", "")
             images = code_output.get("images", [])
-            
+
             prompt = f"""User Query: {query}
-            
+
             Code Execution Result:
             - Success: True
             - Generated Output: {output_text}
             - Generated Images: {len(images)} images created (e.g., charts)
             - Technical Explanation: {explanation}
-            
-            The user asked for an analysis that required code execution (e.g., plotting, calculation). 
+
+            The user asked for an analysis that required code execution (e.g., plotting, calculation).
             The system has successfully run the code.
-            
+
             Generate a response that:
             1. Confirms the task was completed (e.g., "I have generated the plot...")
             2. Explains the result or chart briefly based on the technical explanation
             3. Mentions that the visual is available below
-            
+
             Output as JSON with keys: summary (the confirmation and explanation), key_reasons (steps taken in code), assumptions_used (array), confidence ("HIGH")"""
             return prompt
-        
+
         elif code_output and not code_output.get("success") and (code_output.get("stderr") or code_output.get("error")) and not is_house_query and is_technical_output_query:
             # Code ran but failed
             error_msg = code_output.get("stderr") or code_output.get("error") or "Unknown error"
             prompt = f"""User Query: {query}
-            
+
             Code Execution Failed:
             - Error: {error_msg}
-            
+
             The user asked for a technical task, but the code failed to run.
-            
+
             Generate a response that:
             1. Apologizes for the technical issue
             2. Briefly explains what went wrong (based on the error)
             3. Suggests trying again or rephrasing
-            
+
             Output as JSON with keys: summary (apology and error explanation), key_reasons (empty array), assumptions_used (empty array), confidence ("LOW")"""
             return prompt
-        
+
         # Check if this is a Greeting
         greeting_words = ["hi", "hello", "hey", "greetings", "good morning", "good evening"]
         is_greeting = any(query_lower == g or query_lower.startswith(g + " ") for g in greeting_words)
-        
+
         if is_greeting:
             return """The user sent a greeting. Respond warmly and professionally as their AI Financial Advisor.
 
@@ -1180,7 +1180,7 @@ Output as JSON with keys: summary (your greeting response), key_reasons (empty a
         # Check for emergency fund / job loss queries
         emergency_keywords = ["job", "survive", "survival", "lost", "lose", "emergency", "unemploy", "layoff", "fired"]
         is_emergency_query = any(kw in query_lower for kw in emergency_keywords)
-        
+
         if is_emergency_query:
             savings_rate = metrics.get('savings_rate', 'MEDIUM')
             if savings_rate == 'LOW':
@@ -1189,7 +1189,7 @@ Output as JSON with keys: summary (your greeting response), key_reasons (empty a
                 survival_estimate = "3-6 months"
             else:
                 survival_estimate = "6+ months"
-                
+
             prompt = f"""User Query: {query}
 
 Financial Situation:
@@ -1209,11 +1209,11 @@ Generate a response that:
 Output as JSON with keys: summary (2-3 sentences with the specific survival estimate), key_reasons (3-4 specific tips), assumptions_used (array), confidence (MEDIUM)"""
             return prompt
 
-        
+
         # NEW: Check for user age queries
         age_keywords = ["age", "how old"]
         is_age_query = any(kw in query_lower for kw in age_keywords) and any(pronoun in query_lower for pronoun in ["my", "me", "i"])
-        
+
         if is_age_query:
             if user_age:
                 retirement_years = 65 - user_age if user_age < 65 else 0
@@ -1245,7 +1245,7 @@ Generate a response that:
 
 Output as JSON with keys: summary, key_reasons, assumptions_used, confidence ("LOW")"""
                 return prompt
-        
+
         # NEW: Check for house purchase queries with calculations
         if is_house_query and specific_calculations:
             calc = specific_calculations
@@ -1281,11 +1281,11 @@ BE SPECIFIC with the numbers. DO NOT give generic advice.
 
 Output as JSON with keys: summary, key_reasons (specific steps), assumptions_used (8.5% interest, 20-year tenure), confidence ("HIGH")"""
             return prompt
-        
+
         # NEW: Check for stock/investment queries with web data
         stock_keywords = ["stock", "predict", "price", "forecast", "tesla", "invest"]
         is_stock_query = any(kw in query_lower for kw in stock_keywords)
-        
+
         if is_stock_query and facts:
             facts_text = "\n".join([f"- {fact}" for fact in facts[:3]])
             prompt = f"""User Query: {query}
@@ -1303,11 +1303,11 @@ CRITICAL: Use the web data above. DO NOT give generic stock advice without curre
 
 Output as JSON with keys: summary, key_reasons, assumptions_used, confidence"""
             return prompt
-        
+
         # NEW: Check for historical/comparison queries
         historical_keywords = ["worst", "downfall", "crash", "history", "who invested"]
         is_historical_query = any(kw in query_lower for kw in historical_keywords)
-        
+
         if is_historical_query and facts:
             facts_text = "\n".join([f"- {fact}" for fact in facts[:5]])
             prompt = f"""User Query: {query}
@@ -1328,7 +1328,7 @@ Output as JSON with keys: summary, key_reasons, assumptions_used, confidence ("H
         # Check for insurance queries
         insurance_keywords = ["insurance", "term life", "health insurance", "policy", "premium", "coverage", "lic", "hdfc life"]
         is_insurance_query = any(kw in query_lower for kw in insurance_keywords)
-        
+
         if is_insurance_query:
             prompt = f"""User Query: {query}
 
@@ -1354,15 +1354,15 @@ The user is asking about insurance. Generate a helpful response that includes:
 
 3. A disclaimer about comparing plans on aggregator sites
 
-Output as JSON with keys: summary (comprehensive response with all 5 plans listed), key_reasons (array of considerations), assumptions_used (array), confidence ("MEDIUM")"""            
+Output as JSON with keys: summary (comprehensive response with all 5 plans listed), key_reasons (array of considerations), assumptions_used (array), confidence ("MEDIUM")"""
             return prompt
 
         # Check for stock/investment queries - require "stock" word to avoid false positives
-        is_stock_query = ("stock" in query_lower or "stocks" in query_lower or 
+        is_stock_query = ("stock" in query_lower or "stocks" in query_lower or
                           ("invest" in query_lower and "insurance" not in query_lower) or
                           "nifty" in query_lower or "sensex" in query_lower or
                           "share" in query_lower or "shares" in query_lower)
-        
+
         if is_stock_query:
             prompt = f"""User Query: {query}
 
@@ -1395,11 +1395,11 @@ Output as JSON with keys: summary (the full response with 5 stocks listed), key_
         # Check for retirement corpus queries - use explicit retirement indicators only
         retirement_keywords = ["retire", "retirement", "pension", "corpus", "5cr", "crore", "fire"]
         is_retirement_query = any(kw in query_lower for kw in retirement_keywords)
-        
+
         if is_retirement_query:
             savings_rate = metrics.get('savings_rate', 'MEDIUM')
             diversification = metrics.get('investment_diversification', 'LOW')
-            
+
             prompt = f"""User Query: {query}
 
 User's Financial Profile:
@@ -1425,7 +1425,7 @@ GENERATE A SPECIFIC RESPONSE WITH REAL CALCULATIONS:
 Provide 5-6 SPECIFIC, NUMBERED action steps:
 1. **Increase Monthly SIP**: Invest ₹X,000/month (calculate based on savings_rate: LOW=₹25k, MEDIUM=₹35k, HIGH=₹50k)
 2. **Tax-Advantaged Accounts**: Open PPF (₹1.5L/year), NPS (₹50k/year for tax benefit), maximize EPF
-3. **Asset Allocation** (especially if diversification is {diversification}): 
+3. **Asset Allocation** (especially if diversification is {diversification}):
    - 60% Equity (Nifty 50 index funds, Large-cap mutual funds)
    - 30% Debt (Corporate bonds, Debt mutual funds)
    - 10% Gold (Gold ETF or Sovereign Gold Bonds)
@@ -1443,7 +1443,7 @@ Provide 5 UNIQUE strategies they haven't heard before:
 
 **Include Milestones**:
 - Age 35: ₹15-25 lakhs
-- Age 40: ₹60-80 lakhs  
+- Age 40: ₹60-80 lakhs
 - Age 45: ₹1.5-2 crores
 - Age 50: ₹3-3.5 crores
 - Age 55: ₹5+ crores
@@ -1464,19 +1464,19 @@ CRITICAL: Use actual numbers (₹20,000/month, retire at 55, etc.), not vague st
         useful_facts = [f for f in facts if f and "No specific information found" not in f and len(f) > 20] if facts else []
         has_knowledge = bool(useful_facts and len(useful_facts) > 0)
         has_financial_data = metrics.get('savings_rate') != 'UNKNOWN' or monthly_income or user_age
-        
+
         # DEBUG: Log what we received
         logger.info(f"EXPLAINABILITY DEBUG: facts={facts[:2] if facts else 'None'}, useful_facts_count={len(useful_facts)}, has_knowledge={has_knowledge}, has_financial_data={has_financial_data}")
-        
+
         # Check if this is a stock query (even if finance_reasoning ran)
         stock_keywords = ["price", "stock", "trading", "worth", "value", "hdfc", "reliance", "tcs", "infosys", "tesla"]
         is_stock_query = any(kw in query.lower() for kw in stock_keywords)
-        
+
         logger.info(f"EXPLAINABILITY DEBUG: is_stock_query={is_stock_query}, query_lower={query.lower()[:50]}")
-        
+
         # For stock queries OR any factual query with knowledge, use factual prompt
         if has_knowledge and (is_stock_query or not has_financial_data):
-            logger.info(f"EXPLAINABILITY DEBUG: Using FACTUAL prompt for stock/factual query")
+            logger.info("EXPLAINABILITY DEBUG: Using FACTUAL prompt for stock/factual query")
             # This is a factual query (e.g., "what is the price of HDFC stock")
             # Don't give financial advice, just relay the facts
             prompt = f"""User Query: {query}
@@ -1503,17 +1503,17 @@ Generate a response that:
 
 DO NOT provide generic financial advice (PPF/EPF/NPS) - just answer their specific question.
 
-Output as JSON with keys: 
+Output as JSON with keys:
 - summary (direct answer to their question using the facts)
 - key_reasons (key points from the facts, if any)
 - assumptions_used (empty array or relevant context)
 - confidence (HIGH if facts found, LOW if not)"""
             return prompt
-        
+
         # Build comprehensive financial snapshot for the LLM
         asset_classes = asset_classes or []
         asset_names = [a.replace("ASSET_TYPE_", "").replace("_", " ").title() for a in asset_classes] if asset_classes else []
-        
+
         financial_snapshot = ""
         if any([monthly_income, net_worth, credit_score, total_assets]):
             financial_snapshot = "\n\n== USER'S FINANCIAL SNAPSHOT (from MCP/Fi Money) =="
@@ -1537,7 +1537,7 @@ Output as JSON with keys:
             if user_age:
                 financial_snapshot += f"\n- Age: {user_age} years"
             financial_snapshot += "\n== END FINANCIAL SNAPSHOT =="
-        
+
         # Financial planning query with metrics AND full financial data
         prompt = f"""User Query: {query}
 {financial_snapshot}
@@ -1566,17 +1566,17 @@ CRITICAL REQUIREMENTS:
 
 Output as JSON with keys: summary (2-4 sentences with specific personalized advice referencing their actual numbers), key_reasons (3-5 actionable steps), assumptions_used (array of data sources used), confidence (HIGH if financial snapshot available, MEDIUM otherwise)"""
         return prompt
-    
+
     def _build_summary(self, query: str, metrics: Dict[str, Any], signals: List[str], facts: List[str] = None) -> str:
         """Build a human-readable summary based on query context."""
-        
+
         # Extract metric values
         savings = metrics.get("savings_rate", "UNKNOWN")
         dti = metrics.get("debt_to_income_ratio", "UNKNOWN")
         diversification = metrics.get("investment_diversification", "UNKNOWN")
-        
+
         query_lower = query.lower()
-        
+
         # Retirement-focused query
         if "retire" in query_lower or "retirement" in query_lower:
             if savings == "LOW":
@@ -1585,13 +1585,13 @@ Output as JSON with keys: summary (2-4 sentences with specific personalized advi
                 summary = "Your savings rate is healthy for retirement planning. "
             else:
                 summary = "Your savings rate is moderate for retirement planning. "
-            
+
             if diversification == "LOW":
                 summary += "Consider diversifying investments across more asset classes for long-term growth."
             elif diversification == "HIGH":
                 summary += "Your investments are well-diversified, which is good for long-term stability."
             return summary
-        
+
         # Debt-focused query
         if "debt" in query_lower or "loan" in query_lower or "dti" in query_lower:
             if dti == "HIGH":
@@ -1600,8 +1600,8 @@ Output as JSON with keys: summary (2-4 sentences with specific personalized advi
                 return "Your debt-to-income ratio is LOW and manageable. This gives you flexibility for future borrowing if needed."
             else:
                 return "Your debt levels appear moderate. Monitor your monthly obligations to maintain financial health."
-        
-        # Savings-focused query  
+
+        # Savings-focused query
         if "save" in query_lower or "saving" in query_lower:
             if savings == "LOW":
                 return "Your savings rate is currently LOW. Consider setting up automatic transfers to increase your savings rate to at least 20% of income."
@@ -1609,7 +1609,7 @@ Output as JSON with keys: summary (2-4 sentences with specific personalized advi
                 return "Excellent! Your savings rate is HIGH. You're building a strong financial foundation."
             else:
                 return "Your savings rate is MEDIUM. There's room to increase savings for faster goal achievement."
-        
+
         # Investment-focused query
         if "invest" in query_lower or "mutual fund" in query_lower or "stock" in query_lower:
             # Include knowledge facts if available
@@ -1620,87 +1620,87 @@ Output as JSON with keys: summary (2-4 sentences with specific personalized advi
             elif diversification == "HIGH":
                 return "Your investments are well-diversified across multiple asset classes, reducing overall portfolio risk."
             return "Your investment diversification is moderate. Consider reviewing asset allocation based on your risk tolerance."
-        
+
         # Tax-focused query
         if "tax" in query_lower:
             if facts and len(facts) > 0:
                 return facts[0]
             return "For tax-related advice, I recommend consulting the latest tax regulations or a certified tax professional."
-        
+
         # General financial health query
         summary_parts = []
-        
+
         if savings == "LOW":
             summary_parts.append("Your savings rate is currently low")
         elif savings == "HIGH":
             summary_parts.append("You have a healthy savings rate")
         else:
             summary_parts.append("Your savings rate is moderate")
-        
+
         if dti == "HIGH":
             summary_parts.append("with a high debt burden that needs attention")
         elif dti == "LOW":
             summary_parts.append("with manageable debt levels")
-        
+
         if diversification == "LOW":
             summary_parts.append("Your investments could benefit from more diversification")
         elif diversification == "HIGH":
             summary_parts.append("Your investments are well-diversified")
-        
+
         if summary_parts:
             return ". ".join(summary_parts) + "."
         else:
             return "Based on your financial profile, here's what we found."
-    
+
     def _build_key_reasons(
-        self, 
-        signals: List[str], 
+        self,
+        signals: List[str],
         reasoning: List[str]
     ) -> List[str]:
         """Extract key reasons from signals and reasoning."""
         key_reasons = []
-        
+
         # Add signals as reasons
         for signal in signals[:3]:  # Limit to top 3
             key_reasons.append(signal)
-        
+
         # Add summary reasoning
         if reasoning:
             key_reasons.append(f"Analysis included: {reasoning[0]}")
-        
+
         if not key_reasons:
             key_reasons.append("Financial analysis completed based on available data")
-        
+
         return key_reasons
-    
+
     def _build_assumptions(self, metrics: Dict[str, Any]) -> List[str]:
         """Build list of assumptions used in analysis."""
         assumptions = [
             "Stable income assumed",
             "No major changes in expenses expected"
         ]
-        
+
         if metrics.get("savings_rate"):
             assumptions.append("Savings calculated from income-expense patterns")
-        
+
         return assumptions
-    
+
     def _calculate_confidence(
-        self, 
-        base: str, 
+        self,
+        base: str,
         signal_count: int,
         fact_count: int
     ) -> str:
         """Calculate final confidence level."""
         # Start with base confidence
         confidence_score = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}.get(base, 2)
-        
+
         # Adjust based on evidence
         if signal_count >= 3:
             confidence_score += 1
         if fact_count >= 2:
             confidence_score += 1
-        
+
         # Convert back to band
         if confidence_score >= 4:
             return "HIGH"

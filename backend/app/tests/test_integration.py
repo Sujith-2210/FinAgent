@@ -12,19 +12,19 @@ async def test_full_flow_stock_query(mock_cache_manager):
     orchestrator = OrchestratorAgent()
     # Mocking internal agents for Orchestrator would be ideal
     # For now, we instantiate them
-    
+
     # We are testing the orchestration logic primarily
     query = "What is the price of Reliance?"
-    
+
     # Simulate process
     # 1. Classify
     intent = orchestrator.classify_intent(query)
     assert intent in ["KNOWLEDGE", "ANALYSIS"]
-    
+
     # 2. Plan
     plan = await orchestrator._create_execution_plan(query, {}, {}, intent)
     assert len(plan) >= 2 # At least Knowledge/Finance + Explainability
-    
+
     # 3. Check for specific agents
     agents = [step['agent'] for step in plan]
     # "reliance" triggers stock lookup -> Knowledge or Finance

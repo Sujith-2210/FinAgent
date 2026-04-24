@@ -32,16 +32,16 @@ class SandboxService:
         # Create a unique filename for this execution
         filename = f"script_{uuid.uuid4().hex}.py"
         filepath = os.path.join(self.workspace, filename)
-        
+
         # Write code to file
         wrapped_code = self._wrap_code(code)
         self._cleanup_images()
-        
+
         with open(filepath, "w") as f:
             f.write(wrapped_code)
-            
+
         logger.info(f"Executing code in sandbox: {filename}")
-        
+
         try:
             abs_workspace = os.path.abspath(self.workspace)
             docker_network = os.getenv("SANDBOX_DOCKER_NETWORK", "bridge")
@@ -60,13 +60,13 @@ class SandboxService:
                 "finagent-sandbox",
                 "python", f"/app/{filename}"
             ]
-            
+
             logger.info("Attempting Docker execution...")
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=30 
+                timeout=30
             )
             stdout = result.stdout
             stderr = result.stderr
@@ -98,7 +98,7 @@ class SandboxService:
 
             # Check for generated images
             images = self._collect_images()
-                
+
             return {
                 "success": return_code == 0,
                 "stdout": stdout,
@@ -106,7 +106,7 @@ class SandboxService:
                 "return_code": return_code,
                 "images": images
             }
-            
+
         except Exception as e:
             return {
                 "success": False,
@@ -115,12 +115,12 @@ class SandboxService:
                 "return_code": -1,
                 "images": [],
             }
-            
+
         finally:
             if os.path.exists(filepath):
                 try:
                     os.remove(filepath)
-                except:
+                except Exception:
                     pass
             self._cleanup_images()
 
@@ -172,7 +172,7 @@ if plt.get_fignums():
                         data = base64.b64encode(f.read()).decode("utf-8")
                         images.append({"name": file, "base64": data})
                     # Cleanup output image after collection (or keep it? let's keep for debugging for now)
-                    # os.remove(path) 
+                    # os.remove(path)
         except Exception as e:
             logger.error(f"Error collecting images: {e}")
             raise e

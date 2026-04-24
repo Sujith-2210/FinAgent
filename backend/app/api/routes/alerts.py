@@ -44,7 +44,7 @@ class AlertResponse(BaseModel):
     status: str
     created_at: datetime
     context_snapshot: dict = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
 
@@ -62,7 +62,7 @@ async def get_alerts(
     Get active alerts for the authenticated user.
     """
     alerts = await alert_service.get_active_alerts(user_id=current_user.user_id, limit=limit)
-    
+
     return {
         "alerts": [AlertResponse.model_validate(a).model_dump(by_alias=True) for a in alerts],
         "total": len(alerts),
@@ -76,7 +76,7 @@ async def dismiss_alert(alert_id: str, current_user: User = Depends(get_current_
     success = await alert_service.dismiss_alert(alert_id=alert_id, user_id=current_user.user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Alert not found")
-        
+
     return {
         "alert_id": alert_id,
         "status": "DISMISSED",
@@ -90,7 +90,7 @@ async def acknowledge_alert(alert_id: str, current_user: User = Depends(get_curr
     success = await alert_service.acknowledge_alert(alert_id=alert_id, user_id=current_user.user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Alert not found")
-        
+
     return {
         "alert_id": alert_id,
         "status": "ACKNOWLEDGED",

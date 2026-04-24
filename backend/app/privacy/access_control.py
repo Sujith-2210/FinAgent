@@ -85,83 +85,83 @@ AGENT_ACCESS_RULES: Dict[str, AgentAccessRules] = {
 class AccessController:
     """
     Enforces access control rules for context layers.
-    
+
     Key responsibilities:
     - Check if an agent can read a layer
     - Check if an agent can write to a layer
     - Log access violations
     """
-    
+
     def __init__(self):
         self.rules = AGENT_ACCESS_RULES
         self._violations: List[Dict] = []
-    
+
     def can_read(self, agent: str, layer: str) -> bool:
         """
         Check if an agent can read a context layer.
-        
+
         Args:
             agent: Name of the agent
             layer: Name of the context layer
-            
+
         Returns:
             True if access is allowed, False otherwise
         """
         if agent not in self.rules:
             logger.warning(f"Unknown agent: {agent}")
             return False
-        
+
         allowed = layer in self.rules[agent].read_layers
-        
+
         if not allowed:
             self._log_violation(agent, layer, "read")
-        
+
         return allowed
-    
+
     def can_write(self, agent: str, layer: str) -> bool:
         """
         Check if an agent can write to a context layer.
-        
+
         Args:
             agent: Name of the agent
             layer: Name of the context layer
-            
+
         Returns:
             True if access is allowed, False otherwise
         """
         if agent not in self.rules:
             logger.warning(f"Unknown agent: {agent}")
             return False
-        
+
         allowed = layer in self.rules[agent].write_layers
-        
+
         if not allowed:
             self._log_violation(agent, layer, "write")
-        
+
         return allowed
-    
+
     def get_readable_layers(self, agent: str) -> Set[str]:
         """Get all layers an agent can read."""
         if agent not in self.rules:
             return set()
         return self.rules[agent].read_layers
-    
+
     def get_writable_layers(self, agent: str) -> Set[str]:
         """Get all layers an agent can write to."""
         if agent not in self.rules:
             return set()
         return self.rules[agent].write_layers
-    
+
     def get_agent_permissions(self, agent: str) -> Dict[str, List[str]]:
         """Get complete permission summary for an agent."""
         if agent not in self.rules:
             return {"read": [], "write": []}
-        
+
         return {
             "read": list(self.rules[agent].read_layers),
             "write": list(self.rules[agent].write_layers)
         }
-    
+
     def _log_violation(self, agent: str, layer: str, operation: str):
         """Log an access violation."""
         violation = {
@@ -171,11 +171,11 @@ class AccessController:
         }
         self._violations.append(violation)
         logger.warning(f"Access violation: {agent} attempted {operation} on {layer}")
-    
+
     def get_violations(self) -> List[Dict]:
         """Get all recorded violations."""
         return self._violations.copy()
-    
+
     def clear_violations(self):
         """Clear the violations log."""
         self._violations.clear()

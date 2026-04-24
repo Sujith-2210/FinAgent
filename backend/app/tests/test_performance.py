@@ -25,5 +25,5 @@ async def test_agent_latency_threshold():
     agent = KnowledgeAgent()
     _ = agent.input_schema
     duration = time.time() - start_time
-    
+
     assert duration < 0.01 # 10ms

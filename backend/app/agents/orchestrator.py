@@ -12,26 +12,26 @@ from app.agents.base import BaseAgent
 class OrchestratorAgent(BaseAgent):
     """
     Orchestrator Agent - The central coordinator.
-    
+
     Responsibilities:
     - Understand user intent
     - Decide which agents to invoke
     - Determine execution order
     - Specify what context each agent needs
-    
+
     Rules:
     - Does NOT perform calculations
     - Does NOT generate user-facing advice
     - Does NOT access raw financial values
     """
-    
+
     def __init__(self):
         super().__init__()
         self.name = "orchestrator"
         self.description = "Routes queries to specialized agents and manages execution flow"
         self.read_layers = {"user_goals_context"}
         self.write_layers = {"agent_working_memory"}
-        
+
         self.system_prompt = """You are the Orchestrator Agent in a multi-agent financial intelligence system.
 
 Your task is to:
@@ -52,7 +52,7 @@ Available agents:
 - knowledge: For external facts, tax rules, regulations
 - explainability: For converting outputs to human-readable explanations
 - alert: For generating proactive alerts based on financial signals"""
-        
+
         # Stock symbol mapping for common queries (expanded for better coverage)
         self.stock_symbol_map = {
             # US Stocks
@@ -100,7 +100,7 @@ Available agents:
             "exxon": "XOM",
             "chevron": "CVX",
             "conocophillips": "COP",
-            
+
             # Indian Stocks (with .NS suffix for NSE)
             "reliance": "RELIANCE.NS",
             "ril": "RELIANCE.NS",
@@ -186,7 +186,7 @@ Available agents:
             "persistent": "PERSISTENT.NS",
         }
 
-    
+
     @property
     def input_schema(self) -> Dict[str, Any]:
         return {
@@ -198,7 +198,7 @@ Available agents:
             },
             "required": ["user_query"]
         }
-    
+
     @property
     def output_schema(self) -> Dict[str, Any]:
         return {
@@ -218,47 +218,47 @@ Available agents:
             },
             "required": ["execution_plan", "reason"]
         }
-    
+
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process user query and create execution plan.
         """
         user_query = input_data.get("user_query", "")
         context_summary = input_data.get("context_summary", {})
-        
+
         self.add_reasoning_step("Analyzing user query intent")
-        
+
         # Extract entities using enhanced method
         parsed_entities = self.extract_entities(user_query)
         if parsed_entities:
             self.add_reasoning_step(f"Extracted entities: {parsed_entities}")
-        
+
         # Classify intent
         intent = self.classify_intent(user_query, parsed_entities)
         self.add_reasoning_step(f"Classified intent: {intent}")
-        
+
         # Determine which agents are needed based on query analysis
         execution_plan = await self._create_execution_plan(user_query, context_summary, parsed_entities, intent)
-        
+
         self.add_reasoning_step(f"Created execution plan with {len(execution_plan)} agents")
-        
+
         return {
             "execution_plan": execution_plan,
             "intent": intent,
             "reason": self._generate_reason(user_query, execution_plan),
             "parsed_entities": parsed_entities  # Pass entities to coordinator
         }
-    
+
     async def _create_execution_plan(
-        self, 
-        query: str, 
+        self,
+        query: str,
         context: Dict[str, Any],
         parsed_entities: Dict[str, Any] = None,
         intent: str = None
     ) -> List[Dict[str, Any]]:
         """
         Create an execution plan based on query analysis.
-        
+
         Uses intent classification and entity extraction for improved agent selection.
         """
         plan = []
@@ -293,12 +293,12 @@ Available agents:
         is_personal_income_rebalance_query = (
             has_personal_context and has_income_context and has_income_drop_signal and has_rebalance_signal
         )
-        
+
         # 0. DISCOVERY queries (e.g., "top stocks", "trending stocks", "best performing")
         # These require external knowledge/search, NOT code analysis on specific symbols
         discovery_keywords = ["top", "trending", "best", "worst", "list of", "recommend", "hot", "gainer", "loser"]
         is_discovery = any(kw in query_lower for kw in discovery_keywords) and ("stock" in query_lower or "market" in query_lower)
-        
+
         if is_discovery and not parsed_entities.get("stock_symbol"):
             self.add_reasoning_step("Discovery/Trending query detected - invoking Knowledge_Agent for market data")
             plan.append({
@@ -310,7 +310,7 @@ Available agents:
             })
             # Skip code agent for discovery queries unless explicitly requested later
             # This prevents CodeAgent from trying to "analyze" an unknown symbol
-        
+
         # 0.5. Even in discovery mode, add code agent if explicit analysis is requested
         analysis_in_discovery_keywords = ["volatile", "volatility", "chart", "plot", "graph", "visualize", "calculate"]
         if is_discovery and any(kw in query_lower for kw in analysis_in_discovery_keywords):
@@ -337,9 +337,9 @@ Available agents:
                     },
                     "context_required": ["external_knowledge_context"]
                 })
-        
+
         # Also check for explicit graph keywords as fallback
-        graph_keywords = ["impact", "affect", "connection", "network", "relationship", 
+        graph_keywords = ["impact", "affect", "connection", "network", "relationship",
                          "upstream", "downstream", "supply chain", "supplier", "controversy", "controversies", "esg"]
         if not any(p["agent"] == "graph_reasoning" for p in plan):
             if any(keyword in query_lower for keyword in graph_keywords):
@@ -355,7 +355,7 @@ Available agents:
                         },
                         "context_required": ["external_knowledge_context"]
                     })
-        
+
         # 2. Deep Research Agent - for comprehensive multi-source research
         # CRITICAL FIX: Ensure Deep_Research_Agent is invoked for RESEARCH intent
         if intent == "RESEARCH":
@@ -368,7 +368,7 @@ Available agents:
                 },
                 "context_required": ["external_knowledge_context"]
             })
-        
+
         # Also check for explicit research keywords as fallback
         research_keywords = ["report", "deep dive", "comprehensive", "research", "compare", "comparison"]
         if not any(p["agent"] == "deep_research" for p in plan):
@@ -382,7 +382,7 @@ Available agents:
                     },
                     "context_required": ["external_knowledge_context"]
                 })
-        
+
         # 2.5. Stock Trading Analysis - for buy/sell/hold recommendations using TradingAgents
         stock_trading_keywords = [
             "should i buy", "should i sell", "should i hold",
@@ -393,7 +393,7 @@ Available agents:
         ]
         has_stock_symbol = bool(parsed_entities.get("stock_symbol"))
         has_trading_intent = intent == "STOCK_TRADING" or any(kw in query_lower for kw in stock_trading_keywords)
-        
+
         if has_trading_intent and has_stock_symbol and not is_discovery:
             self.add_reasoning_step(f"Stock trading analysis detected for {parsed_entities.get('stock_symbol')} - invoking TradingAgents pipeline")
             plan.append({
@@ -404,25 +404,25 @@ Available agents:
                 },
                 "context_required": ["external_knowledge_context"]
             })
-        
+
         # 3. Code Agent - for predictions, analysis, and visualizations
         if intent in ["PREDICTION", "ANALYSIS"] and not is_home_affordability_query:
             self.add_reasoning_step(f"{intent} detected - invoking Code_Agent")
             agent_input = {"query_topic": query}
-            
+
             # Add parsed stock symbol if available
             if parsed_entities.get("stock_symbol"):
                 agent_input["stock_symbol"] = parsed_entities["stock_symbol"]
                 self.add_reasoning_step(f"Resolved stock symbol: {parsed_entities['stock_symbol']}")
-            
+
             plan.append({
                 "agent": "code",
                 "input": agent_input,
                 "context_required": ["agent_working_memory"]
             })
-        
+
         # Also check for explicit code keywords as fallback
-        code_keywords = ["plot", "graph", "calculate", "analyze data", "compute", 
+        code_keywords = ["plot", "graph", "calculate", "analyze data", "compute",
                         "chart", "math", "volatility", "trend", "predict", "forecast"]
         if not any(p["agent"] == "code" for p in plan):
             if any(keyword in query_lower for keyword in code_keywords):
@@ -433,25 +433,25 @@ Available agents:
                     agent_input = {"query_topic": query}
                     if parsed_entities.get("stock_symbol"):
                         agent_input["stock_symbol"] = parsed_entities["stock_symbol"]
-                    
+
                     plan.append({
                         "agent": "code",
                         "input": agent_input,
                         "context_required": ["agent_working_memory"]
                     })
-        
+
         # 4. Finance Agent - for financial planning and personal queries
         if intent in ["PLANNING", "PERSONAL"]:
             self.add_reasoning_step(f"{intent} detected - invoking Finance_Agent")
             finance_input = {}
-            
+
             # Add parsed entities for more specific analysis
             if parsed_entities.get("amount"):
                 finance_input["target_amount"] = parsed_entities["amount"]
                 self.add_reasoning_step(f"Target amount: {parsed_entities['amount']}")
             if parsed_entities.get("goal"):
                 finance_input["specific_goal"] = parsed_entities["goal"]
-            
+
             plan.append({
                 "agent": "finance_reasoning",
                 "input": finance_input,
@@ -462,7 +462,7 @@ Available agents:
             if parsed_entities.get("age"):
                 plan[-1]["input"]["user_age"] = parsed_entities["age"]
                 self.add_reasoning_step(f"Passed user age: {parsed_entities['age']}")
-        
+
         # Also check for financial keywords as fallback
         financial_keywords = [
             "invest", "save", "saving", "savings", "spend", "budget", "retire", "retirement",
@@ -470,12 +470,12 @@ Available agents:
             "credit", "emi", "mutual fund", "stock", "epf", "sip", "balance", "rate", "ratio",
             "asset", "liability", "worth", "health", "status", "financial", "afford"
         ]
-        
+
         is_code_active = any(p["agent"] == "code" for p in plan)
         has_financial_kw = any(kw in query_lower for kw in financial_keywords)
         personal_keywords = ["my", "me", "i", "we", "our", "portfolio", "afford", "budget", "account", "transaction"]
         has_personal_context = any(kw in query_lower for kw in personal_keywords)
-        
+
         should_add_finance = False
         if has_financial_kw and not any(p["agent"] == "finance_reasoning" for p in plan):
             if not is_code_active:
@@ -487,12 +487,12 @@ Available agents:
         if should_add_finance:
             self.add_reasoning_step("Financial keywords detected - invoking Finance_Agent")
             finance_input = {}
-            
+
             if parsed_entities.get("amount"):
                 finance_input["target_amount"] = parsed_entities["amount"]
             if parsed_entities.get("goal"):
                 finance_input["specific_goal"] = parsed_entities["goal"]
-            
+
             plan.append({
                 "agent": "finance_reasoning",
                 "input": finance_input,
@@ -519,7 +519,7 @@ Available agents:
                 "input": {},
                 "context_required": ["transactional_signals", "user_financial_context"]
             })
-        
+
         # 5. Knowledge Agent - for factual queries and external information
         if intent == "KNOWLEDGE":
             self.add_reasoning_step("Knowledge query detected - invoking Knowledge_Agent")
@@ -530,7 +530,7 @@ Available agents:
                 },
                 "context_required": ["external_knowledge_context"]
             })
-        
+
         # Also check for knowledge keywords as fallback
         knowledge_keywords = [
             "tax", "rule", "regulation", "law", "80c", "section", "deduction",
@@ -540,7 +540,7 @@ Available agents:
             "what is", "what's", "tell me about", "news",
             "worst", "best", "top", "who", "which", "history", "historical"
         ]
-        
+
         if not any(p["agent"] == "knowledge" for p in plan):
             if any(kw in query_lower for kw in knowledge_keywords):
                 # Avoid pulling knowledge agent for personal-planning prompts that happen to start with "what is/what's".
@@ -565,7 +565,7 @@ Available agents:
                         },
                         "context_required": ["external_knowledge_context"]
                     })
-        
+
         # 5.5. Deep Research for domain-heavy knowledge queries
         # Ensures comprehensive multi-source research for regulatory, tax, and policy queries
         regulatory_deep_research_keywords = [
@@ -586,7 +586,7 @@ Available agents:
                     },
                     "context_required": ["external_knowledge_context"]
                 })
-        
+
         # 6. Validate execution plan completeness
         # Ensure we have at least one agent besides explainability
         if not plan:
@@ -598,60 +598,60 @@ Available agents:
                 },
                 "context_required": ["external_knowledge_context"]
             })
-        
+
         # 7. Always add Explainability at the end for synthesis
         self.add_reasoning_step("Adding Explainability_Agent for response synthesis")
         plan.append({
             "agent": "explainability",
             "context_required": ["agent_working_memory"]
         })
-        
+
         # Validate plan completeness
         self._validate_execution_plan(plan, intent, parsed_entities)
-        
+
         return plan
-    
+
     def _validate_execution_plan(
-        self, 
-        plan: List[Dict[str, Any]], 
-        intent: str, 
+        self,
+        plan: List[Dict[str, Any]],
+        intent: str,
         entities: Dict[str, Any]
     ) -> None:
         """
         Validate that the execution plan is complete for the given intent.
-        
+
         Ensures all required agents are included based on intent and entities.
         """
         agent_names = [p["agent"] for p in plan]
-        
+
         # Check intent-specific requirements
         if intent == "GRAPH_QUERY" and "graph_reasoning" not in agent_names:
             self.add_reasoning_step("WARNING: GRAPH_QUERY intent but graph_reasoning agent not in plan")
-        
+
         if intent == "RESEARCH" and "deep_research" not in agent_names:
             self.add_reasoning_step("WARNING: RESEARCH intent but deep_research agent not in plan")
-        
+
         if intent == "PREDICTION" and "code" not in agent_names:
             self.add_reasoning_step("WARNING: PREDICTION intent but code agent not in plan")
-        
+
         if intent == "PLANNING" and "finance_reasoning" not in agent_names:
             self.add_reasoning_step("WARNING: PLANNING intent but finance_reasoning agent not in plan")
-        
+
         # Check entity-specific requirements
         if entities.get("stocks") and "code" not in agent_names and "knowledge" not in agent_names:
             self.add_reasoning_step("WARNING: Stock entities present but no analysis agent in plan")
-        
+
         if entities.get("goals") and "finance_reasoning" not in agent_names:
             self.add_reasoning_step("WARNING: Goal entities present but finance_reasoning agent not in plan")
-        
+
         # Ensure explainability is always last
         if "explainability" in agent_names and agent_names[-1] != "explainability":
             self.add_reasoning_step("WARNING: Explainability agent should be last in execution plan")
-    
+
     def _generate_reason(self, query: str, plan: List[Dict[str, Any]]) -> str:
         """Generate explanation for the execution plan."""
         agents = [p["agent"] for p in plan]
-        
+
         if len(agents) == 1:
             return f"Query requires {agents[0]} agent for analysis"
         else:
@@ -660,7 +660,7 @@ Available agents:
     def classify_intent(self, query: str, entities: Dict[str, Any] = None) -> str:
         """
         Classify query intent to determine primary analysis type.
-        
+
         Intent categories:
         - PREDICTION: Stock price forecasting, trend prediction
         - ANALYSIS: Data analysis, visualization, calculations
@@ -669,11 +669,11 @@ Available agents:
         - GRAPH_QUERY: Relationship analysis, network queries
         - KNOWLEDGE: Factual queries, definitions, regulations
         - PERSONAL: Personal financial status queries
-        
+
         Args:
             query: User query string
             entities: Optional extracted entities for context
-            
+
         Returns:
             Intent classification string
         """
@@ -742,7 +742,7 @@ Available agents:
         alert_terms = ["alert", "alert check", "proactive alert", "trigger alert", "trigger a proactive alert check"]
         if any(term in query_lower for term in alert_terms):
             return "PERSONAL"
-        
+
         # 1. GRAPH_QUERY - Relationship and network analysis
         graph_keywords = [
             "impact", "affect", "connection", "network", "relationship",
@@ -751,7 +751,7 @@ Available agents:
         ]
         if any(keyword in query_lower for keyword in graph_keywords):
             return "GRAPH_QUERY"
-        
+
         # 1.5. STOCK_TRADING - Buy/sell/hold decision queries with specific stock
         stock_trading_keywords = [
             "should i buy", "should i sell", "should i hold",
@@ -761,7 +761,7 @@ Available agents:
         ]
         if any(kw in query_lower for kw in stock_trading_keywords):
             return "STOCK_TRADING"
-        
+
         # 2. PREDICTION - Forecasting and predictions
         prediction_keywords = [
             "predict", "forecast", "future", "will be", "going to",
@@ -775,10 +775,10 @@ Available agents:
                 if "next" in date_info.get("original", "").lower():
                     has_future_date = True
                     break
-        
+
         if any(keyword in query_lower for keyword in prediction_keywords) or has_future_date:
             return "PREDICTION"
-        
+
         # 3. RESEARCH - Multi-source research and comparisons
         research_keywords = [
             "report", "deep dive", "comprehensive", "research", "compare",
@@ -788,10 +788,10 @@ Available agents:
         # Research queries are typically longer and more complex
         is_complex = len(query_lower.split()) > 5
         has_research_keyword = any(kw in query_lower for kw in research_keywords)
-        
+
         if has_research_keyword and is_complex:
             return "RESEARCH"
-        
+
         # 4. ANALYSIS - Data analysis, calculations, visualizations
         analysis_keywords = [
             "plot", "graph", "chart", "calculate", "compute", "analyze data",
@@ -800,7 +800,7 @@ Available agents:
         ]
         if any(keyword in query_lower for keyword in analysis_keywords):
             return "ANALYSIS"
-        
+
         # 5. PLANNING - Financial goal planning
         planning_keywords = [
             "plan", "goal", "save for", "invest for", "afford", "budget",
@@ -809,10 +809,10 @@ Available agents:
         ]
         has_goal = entities.get("goal") or entities.get("goals")
         has_amount = entities.get("amount") or entities.get("amounts")
-        
+
         if any(keyword in query_lower for keyword in planning_keywords) or (has_goal and has_amount):
             return "PLANNING"
-        
+
         # 6. KNOWLEDGE - Factual queries, definitions, regulations (check before PERSONAL)
         knowledge_keywords = [
             "what is", "what are", "tell me about", "explain", "definition",
@@ -821,7 +821,7 @@ Available agents:
         ]
         if any(keyword in query_lower for keyword in knowledge_keywords):
             return "KNOWLEDGE"
-        
+
         # 7. PERSONAL - Personal financial status queries (check after KNOWLEDGE)
         personal_keywords = [
             "my portfolio", "my savings", "my income",
@@ -830,32 +830,32 @@ Available agents:
         personal_attributes = ["age", "income", "savings", "networth", "credit_score"]
         has_personal_attr = entities.get("personal_attribute") in personal_attributes
         has_personal_pronoun = any(kw in query_lower for kw in personal_keywords)
-        
+
         if has_personal_attr or has_personal_pronoun:
             return "PERSONAL"
-        
+
         # Default: If query has stock symbols, likely ANALYSIS, otherwise KNOWLEDGE
         if entities.get("stocks") or entities.get("stock_symbol"):
             return "ANALYSIS"
-        
+
         return "KNOWLEDGE"
-    
+
     def extract_entities(self, query: str) -> Dict[str, Any]:
         """
         Extract financial entities from query with comprehensive pattern matching.
-        
+
         Extracts:
         - Stock symbols (with company name mapping)
         - Financial amounts (supporting Indian formats: ₹, cr, lakh)
         - Dates (relative and absolute)
         - Financial goals
-        
+
         Returns:
             Dictionary with extracted entities: stocks, amounts, dates, goals
         """
         import re
         from datetime import datetime, timedelta
-        
+
         entities = {}
         query_lower = query.lower()
         stock_context_keywords = [
@@ -864,7 +864,7 @@ Available agents:
         ]
         has_stock_context = any(kw in query_lower for kw in stock_context_keywords)
         ambiguous_company_names = {"target"}
-        
+
         # 1. Extract stock symbols (multiple stocks possible)
         stocks_found = []
         for company_name, ticker in self.stock_symbol_map.items():
@@ -878,16 +878,16 @@ Available agents:
                     "symbol": ticker,
                     "company_name": company_name.title()
                 })
-        
+
         if stocks_found:
             entities["stocks"] = stocks_found
             # For backward compatibility, keep single stock_symbol
             entities["stock_symbol"] = stocks_found[0]["symbol"]
             entities["company_name"] = stocks_found[0]["company_name"]
-        
+
         # 2. Extract amounts (Indian currency format with comprehensive patterns)
         amounts_found = []
-        
+
         # Pattern 1: Crores (10cr, 5 crore, 10 crores, 5.5cr)
         crore_pattern = r'(\d+(?:\.\d+)?)\s*(?:cr|crore|crores)\b'
         for match in re.finditer(crore_pattern, query_lower):
@@ -897,7 +897,7 @@ Available agents:
                 "formatted": f"₹{value * 10000000:,.0f}",
                 "display": f"₹{value} crore" if value == 1 else f"₹{value} crores"
             })
-        
+
         # Pattern 2: Lakhs (10L, 5 lakh, 10 lakhs, 5.5L)
         lakh_pattern = r'(\d+(?:\.\d+)?)\s*(?:l|lakh|lakhs)\b'
         for match in re.finditer(lakh_pattern, query_lower):
@@ -907,7 +907,7 @@ Available agents:
                 "formatted": f"₹{value * 100000:,.0f}",
                 "display": f"₹{value} lakh" if value == 1 else f"₹{value} lakhs"
             })
-        
+
         # Pattern 3: Thousands (10k, 5000, 10 thousand)
         thousand_pattern = r'(\d+(?:\.\d+)?)\s*(?:k|thousand|thousands)\b'
         for match in re.finditer(thousand_pattern, query_lower):
@@ -917,7 +917,7 @@ Available agents:
                 "formatted": f"₹{value * 1000:,.0f}",
                 "display": f"₹{value}k"
             })
-        
+
         # Pattern 4: Direct rupee amounts (₹50000, Rs 50000, Rs. 50,000)
         rupee_pattern = r'(?:₹|rs\.?|inr)\s*(\d+(?:,\d+)*(?:\.\d+)?)'
         for match in re.finditer(rupee_pattern, query_lower):
@@ -927,7 +927,7 @@ Available agents:
                 "formatted": f"₹{value:,.0f}",
                 "display": f"₹{value:,.0f}"
             })
-        
+
         # Pattern 5: Plain numbers with context (e.g., "invest 50000")
         # Only if no other amount patterns matched
         if not amounts_found:
@@ -941,16 +941,16 @@ Available agents:
                         "formatted": f"₹{value:,.0f}",
                         "display": f"₹{value:,.0f}"
                     })
-        
+
         if amounts_found:
             entities["amounts"] = amounts_found
             # For backward compatibility, keep single amount
             entities["amount"] = amounts_found[0]["value"]
             entities["amount_formatted"] = amounts_found[0]["formatted"]
-        
+
         # 3. Extract dates (relative and absolute)
         dates_found = []
-        
+
         # Relative dates
         relative_patterns = {
             r'\b(?:next|coming)\s+(\d+)\s+(?:day|days)\b': lambda d: datetime.now() + timedelta(days=int(d)),
@@ -962,7 +962,7 @@ Available agents:
             r'\blast\s+(\d+)\s+(?:month|months)\b': lambda d: datetime.now() - timedelta(days=int(d)*30),
             r'\blast\s+(?:month|week|year)\b': lambda d: datetime.now() - timedelta(days=30),
         }
-        
+
         for pattern, date_func in relative_patterns.items():
             match = re.search(pattern, query_lower)
             if match:
@@ -976,16 +976,16 @@ Available agents:
                         "type": "relative",
                         "original": match.group(0)
                     })
-                except:
+                except Exception:
                     pass
-        
+
         # Absolute dates (YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY)
         absolute_patterns = [
             r'\b(\d{4})-(\d{2})-(\d{2})\b',  # YYYY-MM-DD
             r'\b(\d{2})/(\d{2})/(\d{4})\b',  # DD/MM/YYYY
             r'\b(\d{2})-(\d{2})-(\d{4})\b',  # DD-MM-YYYY
         ]
-        
+
         for pattern in absolute_patterns:
             for match in re.finditer(pattern, query):
                 dates_found.append({
@@ -993,10 +993,10 @@ Available agents:
                     "type": "absolute",
                     "original": match.group(0)
                 })
-        
+
         if dates_found:
             entities["dates"] = dates_found
-        
+
         # 4. Extract financial goals
         goal_keywords = {
             "house": "HOME_PURCHASE",
@@ -1023,7 +1023,7 @@ Available agents:
             "vehicle": "VEHICLE_PURCHASE",
             "bike": "VEHICLE_PURCHASE",
         }
-        
+
         goals_found = []
         for keyword, goal_type in goal_keywords.items():
             if keyword in query_lower:
@@ -1031,12 +1031,12 @@ Available agents:
                     "type": goal_type,
                     "keyword": keyword
                 })
-        
+
         if goals_found:
             entities["goals"] = goals_found
             # For backward compatibility
             entities["goal"] = goals_found[0]["type"]
-            
+
         # 5. Extract Age
         # Patterns: "age 25", "at 25", "25 years old", "age of 25", "i am 25"
         age_patterns = [
@@ -1046,7 +1046,7 @@ Available agents:
             r'\bage\s+of\s+(\d{2})\b',
             r'\bi\s+am\s+(\d{2})\b'
         ]
-        
+
         for pattern in age_patterns:
             match = re.search(pattern, query_lower)
             if match:
@@ -1055,9 +1055,9 @@ Available agents:
                 if 18 <= age <= 100:
                     entities["age"] = age
                     break
-        
+
         return entities
-    
+
     def _parse_query_entities(self, query: str) -> Dict[str, Any]:
         """
         Legacy method - calls extract_entities for backward compatibility.

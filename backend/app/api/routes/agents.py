@@ -93,7 +93,7 @@ async def get_agents_status():
             write_layers=["alert_context"]
         )
     ]
-    
+
     return {
         "agents": [agent.model_dump() for agent in agents],
         "total": len(agents),
@@ -126,13 +126,13 @@ async def get_agent_activity(limit: int = 20):
 async def get_agent_details(agent_name: str):
     """Get detailed information about a specific agent."""
     valid_agents = ["orchestrator", "finance_reasoning", "knowledge", "explainability", "alert"]
-    
+
     if agent_name not in valid_agents:
         raise HTTPException(
             status_code=404,
             detail=f"Agent not found. Valid agents: {valid_agents}"
         )
-    
+
     toggle_state = get_agent_toggle_state()
     logs = [log for log in audit_logger.export_logs() if log.get("agent_name") == agent_name]
     last_reasoning = [log.get("reasoning", "") for log in logs[-5:]]
@@ -150,13 +150,13 @@ async def get_agent_details(agent_name: str):
 async def toggle_agent(agent_name: str, enabled: bool = True):
     """Enable or disable an agent."""
     valid_agents = ["finance_reasoning", "knowledge", "explainability", "alert"]
-    
+
     if agent_name not in valid_agents:
         raise HTTPException(
             status_code=400,
             detail="Cannot toggle this agent. Orchestrator cannot be disabled."
         )
-    
+
     set_agent_enabled(agent_name, enabled)
     logger.info(f"Agent toggle updated: {agent_name} enabled={enabled}")
 

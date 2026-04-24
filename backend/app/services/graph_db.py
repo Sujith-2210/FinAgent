@@ -12,7 +12,7 @@ class GraphDBService:
     def __init__(self, uri: Optional[str] = None, auth: Optional[tuple[str, str]] = None):
         """
         Initialize the Graph DB Service.
-        
+
         Args:
             uri: Neo4j connection URI.
             auth: Tuple of (username, password).
@@ -25,7 +25,7 @@ class GraphDBService:
         self.driver = None
         if self.auth[1] == "neo4j_change_me":
             logger.warning("Using default Neo4j password placeholder. Set NEO4J_PASSWORD for non-dev usage.")
-        
+
         try:
             # Using AsyncDriver for better performance in async app
             self.driver = AsyncGraphDatabase.driver(self.uri, auth=self.auth)
@@ -53,28 +53,28 @@ class GraphDBService:
     async def execute_query(self, query: str, parameters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """
         Execute a Cypher query.
-        
+
         Args:
             query: Cypher query string.
             parameters: Dictionary of query parameters.
-            
+
         Returns:
             List of records as dictionaries.
         """
         if parameters is None:
             parameters = {}
-            
+
         try:
             records, summary, keys = await self.driver.execute_query(
-                query, 
+                query,
                 parameters,
                 database_="neo4j"
             )
-            
+
             # Convert to list of dicts
             results = [r.data() for r in records]
             return results
-            
+
         except Exception as e:
             logger.error(f"Query failed: {query} | Error: {e}")
             raise
@@ -82,12 +82,12 @@ class GraphDBService:
     async def create_node(self, label: str, properties: Dict[str, Any]):
         """Helper to create a simple node (MERGE to avoid duplicates)."""
         query = f"MERGE (n:{label} {{name: $props.name}}) SET n += $props RETURN n"
-        # If 'name' is not in props, this might fail or create weird nodes. 
+        # If 'name' is not in props, this might fail or create weird nodes.
         # For V1, we assume 'name' is the ID.
         if "name" not in properties:
              # Fallback to simple create if no name key
              query = f"CREATE (n:{label} $props) RETURN n"
-             
+
         return await self.execute_query(query, {"props": properties})
 
     async def create_relationship(self, from_node: Dict[str, Any], to_node: Dict[str, Any], rel_type: str, properties: Dict[str, Any] = None):
@@ -97,7 +97,7 @@ class GraphDBService:
         """
         if properties is None:
             properties = {}
-            
+
         query = f"""
         MATCH (a:{from_node['label']} {{name: $from_name}})
         MATCH (b:{to_node['label']} {{name: $to_name}})
@@ -120,7 +120,7 @@ class GraphDBService:
             "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Sector) REQUIRE s.name IS UNIQUE",
             "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Topic) REQUIRE t.name IS UNIQUE"
         ]
-        
+
         for q in constraints:
             try:
                 await self.execute_query(q)
