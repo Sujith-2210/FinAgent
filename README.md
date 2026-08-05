@@ -359,10 +359,6 @@ The [`kamathhrishi/finance-agent`](https://github.com/kamathhrishi/finance-agent
 
 ---
 
-## 📝 License
-
-MIT License
-
 ## 🤝 Contributing
 
 Contributions welcome! Please read our contributing guidelines and ensure CI checks pass before submitting a PR.
